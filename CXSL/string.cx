@@ -1,0 +1,83 @@
+package string
+
+func strsub (s str, pre i32, post i32) (out str) {
+	if post >= len(s) || pre >= len(s) || pre < 0 || post < 0 {
+		printf("Error: string index out of bounds!")
+		assert(false)
+	} else {
+		out = str.substr(s, pre, post)
+	}
+}
+
+func strocc (s str, in str) (out bool) {
+	var j i32
+	var k i32
+	j = len(s) - len(in)
+	k = len(in)
+	for i := 0; i < j; i++ {
+		if str.eq(str.substr(s, i, i + k), in) {
+			out = true
+			return
+		}
+	}
+	out = false
+}
+
+func strfind (s str, in str) (out i32) {
+	var j i32
+	var k i32
+	j = i32.sub(len(s), len(in))
+	k = len(in)
+	for i := 0; i < j; i++ {
+		if str.eq(str.substr(s, i, i + k), in) {
+			out = i
+			return
+		}
+	}
+	out = -1
+}
+
+func strapp (s str, in str) (out str) {
+	out = str.concat(s, in)
+}
+
+func strpre (s str, in str) (out str) {
+	out = str.concat(in, s)
+}
+
+func strsplit (s str, in str) (out []str) {
+	var j i32
+	var k i32
+	var l i32
+	var app str
+	j = len(s) - len(in) + 1
+	k = len(in)
+	l = 0
+	for i := 0; i < j; i++ {
+		app = str.substr(s, i, i + k)
+		if str.eq(app, in) {	
+			app = str.substr(s, l, i)
+			out = append(out, app)
+			l = i + k
+		}
+	}
+	if l != j - 1 {
+		app = str.substr(s, l, len(s))
+		out = append(out, app)
+	}
+}
+
+func strjoin (in []str, del str) (out str) {
+	out = ""
+	for i := 0; i < len(in) - 1; i++ {
+		out = str.concat(out, in[i])
+		out = str.concat(out, del)
+	}
+	if len(in) != 0 {
+		out = str.concat(out, in[len(in) - 1])
+	}
+}
+
+
+
+

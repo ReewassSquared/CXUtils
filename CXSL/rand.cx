@@ -1,0 +1,103 @@
+package random
+
+var MT [624]i64
+var index i64
+
+type Random struct {
+	seed i64
+}
+
+func (r Random) initgen () {
+	i := 0
+	MT[0] = r.seed
+	for i = 1; i < 624; i++ {
+		MT[i] = i64.bitand(i64.add(i64.mul(1812433253L, i64.bitxor(MT[i-1], i64.bitshr(MT[i-1], 30L))), i32.i64(i)), 4294967295L)
+	}
+}
+
+func random (s i64) (out Random) {
+	out = Random{ seed: s }
+	out.initgen()
+	index = 0L
+}
+
+func (r Random) genNumbers () {
+	for i := 0; i < 623; i++ {
+		var y i64
+		y = i64.add(i64.bitand(MT[i], 2147483648L), i64.bitand(MT[i32.mod(i + 1, 624)], 2147483647L))
+		MT[i] = i64.bitxor(MT[i32.mod(i + 397, 624)], i64.bitshr(y, 1L))
+		if i64.mod(y, 2L) == 0L {
+			MT[i] = i64.bitxor(MT[i], 2567483615L)
+		}
+	}
+}
+
+func (r Random) extractRandom () (out i64) {
+	if index == 0L {
+		r.genNumbers()
+	}
+	var y i64
+	y = MT[index]
+	y = i64.bitxor(y, i64.bitshr(y, 11L))
+	y = i64.bitxor(y, i64.bitand(i64.bitshl(y, 7L), 2636928640L))
+	y = i64.bitxor(y, i64.bitand(i64.bitshl(y, 15L), 4022730752L))
+	y = i64.bitxor(y, i64.bitshr(y, 18L))
+	index = i64.mod(index + 1L, 624L)
+	out = y
+}
+
+func (r Random) drand () (out f64) {
+	var special i64
+	special = r.extractRandom()
+	out = f64.div(i64.f64(special), 4294967295.0D)
+}
+
+func (r Random) frand () (out f32) {
+	var special i64
+	special = r.extractRandom()
+	out = f32.div(i64.f32(special), 4294967295.0)
+}
+
+func (r Random) irand () (out i32) {
+	var special i64
+	special = r.extractRandom()
+	out = i64.i32(special)
+}
+
+func (r Random) lrand () (out i64) {
+	var special i64
+	special = r.extractRandom()
+	out = r.extractRandom()
+	out = i64.bitor(i64.bitshl(special, 32L), out)
+}
+
+func (r Rand) irange (low i32, high i32) (out i32) {
+	var special i64
+	special = r.extractRandom()
+	special = i64.mod(special, high - low)
+	out = i64.i32(i64.add(special, i32.i64(low)))
+}
+
+func (r Rand) lrange (low i64, high i64) (out i64) {
+	out = r.lrand()
+	out = i64.mod(out, high - low)
+	out = i64.add(out, low)
+}
+
+func (r Rand) frange (low f32, high f32) (out f32) {
+	out = r.frand()
+	out = f32.mul(out, f32.sub(high, low))
+	out = f32.add(out, low)
+}
+
+func (r Rand) drange (low f64, high f64) (out f64) {
+	out = r.drand()
+	out = f64.mul(out, f64.sub(high, low))
+	out = f64.add(out, low)
+}
+
+func (r Rand) rbin () (out bool) {
+	var test f64
+	test = r.drand()
+	out = f64.gt(test, 0.5D)
+}

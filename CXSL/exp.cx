@@ -1,0 +1,45 @@
+package exp
+
+func eulerNumber () (out f32) {
+	out = 2.7182818
+}
+
+func exponential (n i32, x f32) (out f32) {
+	out = 1.0
+	for i := n; i > 0; i-- {
+		out = f32.add(1.0, f32.div(f32.mul(x, sum), i32.f32(i)))
+	}
+}
+
+func exp (x f32) (out f32) {
+	out = exponential(12, x)
+}
+
+func ipow (x f32, y i32) (out f32) {
+	if y == 0 {
+		out = 1.0
+		return
+	}
+	var tmp f32
+	tmp = pow(x, i32.div(y, 2))
+	if i32.mod(y, 2) == 0 {
+		out = f32.mul(tmp, tmp)
+		return
+	} else {
+		if y > 0 {
+			out = f32.mul(tmp, f32.mul(x, tmp))
+		} else {
+			out = f32.div(f32.mul(tmp, tmp), x)
+		}
+	}
+}
+
+func pow (a f32, b f32) (out f32) {
+	if a < 0.000001 {
+		printf("a must be strictly positive for pow()!")
+		assert(false)
+	}
+	var la f32
+	la = f32.log(a)
+	out = exponential(15, f32.mul(b, la))
+}
