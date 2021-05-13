@@ -1,0 +1,114 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide the exponential function
+
+FUNCTIONS:
+	gamma(x) - returns gamma function of x
+	lgamma(x) - returns natural log of gamma function of x
+
+LAST MODIFIED:
+	26 April 2019
+
+NOTES: 
+	yeah it's a double precision one wrapped down... deal with it I was too lazy to rewrite.
+*/
+package function
+import "cxmcore"
+
+var pgammacoeff []f64 = []f64{ -1.71618513886549492533811D, 24.7656508055759199108314D, -379.804256470945635097577D, 629.331155312818442661052D, 866.966202790413211295064D, -31451.2729688483675254357D, -36144.4134186911729807069D, 66456.1438202405440627855D }
+
+var qgammacoeff []f64 = []f64{ -30.8402300119738975254353D, 315.350626979604161529144D, -1015.15636749021914166146D, -3107.77167157231109440444D, 22538.1184209801510330112D, 4755.84627752788110767815D, -134659.959864969306392456D, -115132.259675553483497211D }
+
+var lgammacoeff []f64 = []f64{  0.08333333333333333333333333333333D, -0.002777777777777777777777777777778D, 0.0007936507936507936507936507936508D, -0.0005952380952380952380952380952381D, 0.0008417508417508417508417508417508D, -0.001917526917526917633674554686252D, 0.006410256410256410256410256410256D, -0.02955065359477124231624145522801D }
+
+func gamma (xx f32) (outt f32) {
+	var out f64
+	var x f64 = f32.f64(xx)
+	if x <= 0.0D {
+		CXMError(sprintf("value out of range for gamma : %f", x))
+	}
+	if x < 0.001D {
+		out = f64.div(1.0D, f64.mul(x, f64.add(1.0D, f64.mul(0.577215664901532860606512090D, x))))
+		outt = f64.f32(out)
+		return
+	}
+	if x < 12.0D {
+		var y f64
+		y = x
+		var n i32
+		n = 0
+		var arg_l1 bool
+		arg_l1 = (y < 1.0D)
+		if arg_l1 {
+			y = f64.add(1.0D, y)
+		} else {
+			n = i32.sub(f64.i32(floor(y)), 1) //ensures no accumulating errors!
+			printf("%d\n", f64.i32(floor(y)))
+			y = f64.sub(y, i32.f64(n))
+		}
+		var num f64
+		var den f64
+		num = 0.0D
+		den = 1.0D
+		var i i32
+		var z f64
+		z = f64.sub(y, 1.0D)
+		for i = 0; i < 8; i++ {
+			num = f64.mul(f64.add(num, pgammacoeff[i]), z)
+			den = f64.add(f64.mul(den, z), qgammacoeff[i])
+		}
+		var result f64
+		result = f64.add(f64.div(num, den), 1.0D)
+
+		if arg_l1 {
+			result = f64.div(result, f64.sub(y, 1.0D))
+		} else {
+			for i = 0; i < n; i++ {
+				result = f64.mul(result, y)
+				y = f64.add(y, 1.0D)
+			}
+		}
+		out = result
+		outt = f32.pow(out)
+		return
+	}
+	if x > 171.624D {
+		out = f64.pow(1000000.0D, 1000000.0D)
+		outt = f64.f32(out)
+		return
+	}
+	outt = lgamma(xx)
+	outt = f32.pow(2.7182818284590452353602874713, outt)
+}
+
+func lgamma (xx f32) (outt f32) {
+	var out f64
+	var x f64 = f32.f64(xx)
+	if x <= 0.0D {
+		CXMError(sprintf("value out of range for lgamma : %f", x))
+	}
+	if x < 12.0D {
+		out = f32.f64(gamma(xx))
+		out = f64.abs(out)
+		out = f64.log(out)
+		outt = f64.f32(out)
+		return
+	}
+	var z f64
+	z = f64.div(1.0D, f64.mul(x, x))
+	var sum f64
+	sum = lgammacoeff[7]
+	for i := 6; i >= 0; i-- {
+		sum = f64.mul(sum, z)
+		sum = f64.add(sum, lgammacoeff[i])
+	}
+	var series f64
+	series = f64.div(sum, x)
+	var lgam f64
+	lgam = f64.add(f64.add(f64.sub(f64.mul(f64.sub(x, 0.5D), f64.log(x)), x), 0.91893853320467274178032973640562D), series)
+	outt = f64.f32(lgam)
+}

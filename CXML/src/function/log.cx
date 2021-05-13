@@ -1,0 +1,38 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide logarithm functions and utilities
+
+FUNCTIONS:
+	log(x) - returns natural log of x 
+	log10(x) - returns log base 10 of x
+	log2(x) - returns log base two of x
+	logn(x, b) - returns log base b of x
+
+LAST MODIFIED:
+	26 April 2019
+*/
+package function
+include "cxmcore"
+
+func log (x f32) (out f32) {
+	out = f32.log(x) //more cheating
+}
+
+func log10 (x f32) (out f32) {
+	out = f32.log10(x) //cheating!
+}
+
+func log2 (x f32) (out f32) {
+	out = f32.log2(x) //cheating is good.
+}
+
+func logn (x f32, b f32) (out f32) {
+	if b < 0.0 {
+		CXMError("Base is negative!")
+	}
+	out = f32.div(log2(x), log2(b))
+}

@@ -1,0 +1,509 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide core functionality for CXM
+
+TYPES:
+	Matrix:
+		l (i32) - row count of the matrix
+		c (i32) - column count of the matrix
+		data ([]f32) - data stored in matrix (flat/dense)
+		
+FUNCTIONS:
+	matrix(in []f32, l i32, w i32) - returns a Matrix with l rows and w columns from data in.
+	matrixOnes(l i32, w i32) - constructs a matrix of ones with dimensions (l, w)
+	zeroMat(n) - returns a square matrix of size n with all elements equal to zero.
+	idMat(n) - returns the identity matrix (e(n)(n) = 1, 0 otherwise) of size n.
+	Matrix.print() - prints the matrix: [[e11, e12, ...],\n ... \n, [...]]
+	Matrix.shape() - returns an array of size two and of type i32 with data as follows: (l, w).
+	Matrix.clone() - returns a deep copy of the matrix
+	Matrix.dot(matrix) - returns the resulting matrix from the matrix dot product of the called matrix on the argument.
+	Matrix.swapRows(rsrc i32, rdst i32) - a utility used to swap rows rsrc and rdst of the called matrix.
+	Matrix.matPos(l i32, w i32) - returns an i32 with the appropriate index to get e(l)(w) from the matrix.
+	Matrix.normRow(r i32, divv f32) - a utility function that normalizes row r of the called matrix with division value divv.
+	Matrix.linearReduction(r i32, j i32, p f32) - a utility function that performs a linear reduction on row r on the called matrix.
+	Matrix.pivot() - returns the pivot matrix of the called matrix.
+	Matrix.parityUtil() - a utility function that calculates the parity of the pivot matrix of the called matrix.
+	Matrix.lu() - performs LU decomposition on the called matrix. returns an array of matrices of size three with data as follows: (L, U, P) (P = pivot matrix).
+	Matrix.rref() - converts the called matrix to reduced row echelon form.
+	Matrix.det() - calculates the determinant of the called matrix.
+	Matrix.getRow(r) - returns a slice (f32) with the rth row of the called matrix.
+	Matrix.getColumn(c) - returns a slice (f32) with the cth column of the called matrix.
+	Matrix.getElement(r, c) - returns the element of the called matrix in the rth row and cth column.
+	Matrix.inv() - returns the inverse matrix of the called matrix.
+	Matrix.transpose() - returns the transpose matrix of the called matrix.
+
+LAST MODIFIED:
+	28 April 2019
+
+NOTE: commented-out main method included here for testing purposes. feel free to delete in future.
+
+*/
+package multivar
+include "cxmcore"
+
+type Matrix struct {
+	l i32
+	w i32
+	data []f32
+}
+
+func matrix (in []f32, length i32, width i32) (out Matrix) {
+	if len(in) != i32.mul(length, width) {
+		CXMError(sprintf("length and width specified do not match size of data slice: (%d * %d) != %d", length, width, len(in)))
+	}
+	out = Matrix{ data: in, l: length, w: width }
+}
+
+func matrixOnes (lg i32, wd i32) (out Matrix) {
+	var dat []f32
+	for i := 0; i < i32.mul(lg, wd); i++ {
+		dat = append(dat, 1.0)
+	}
+	out = Matrix{ data: dat, l: lg, w: wd }
+}
+
+func (m Matrix) print () {
+	printf("[")
+	for j := 0; j < m.l - 1; j++ {
+		printf("[")
+		for i := 0; i < m.w - 1; i++ {
+			printf("%f, ", m.data[j*m.w + i])
+		}
+		if m.w > 0 {
+			printf("%f],\n", m.data[j*m.w + m.w-1])
+		}
+	}
+	if m.l > 0 {
+		printf("[")
+		for i := 0; i < m.w - 1; i++ {
+			printf("%f, ", m.data[(m.l - 1)*m.w + i])
+		}
+		if m.w > 0 {
+			printf("%f]]\n\n", m.data[i32.add(i32.mul(m.l - 1, m.w), m.w - 1)])
+		}
+	}
+}
+
+func (m Matrix) shape () (out []i32) {
+	out = resize(out, 2)
+	out[0] = m.l
+	out[1] = m.w
+}
+
+func (m Matrix) clone () (out Matrix) {
+	var cdata []f32
+	cdata = resize(cdata, m.l*m.w)
+	for i := 0; i < m.l*m.w; i++ {
+		cdata[i] = m.data[i]
+	}
+	out = Matrix{ data: cdata, l: m.l, w: m.w }
+}
+
+func (a Matrix) dot (b Matrix) (out Matrix) {
+	if a.w != b.l {
+		CXMError(sprintf("dimension mismatch: %d != %d for matrices with dimension (%d, %d) and (%d, %d), respectively.", a.w, b.l, a.l, a.w, b.l, b.w))
+	}
+	var m []f32
+	m = resize(m, i32.mul(a.l, b.w))
+	var t f32
+	for i := 0; i < a.l; i++ {
+		for j := 0; j < b.w; j++ {
+			t = 0.0
+			for k := 0; k < a.w; k++ {
+				t = f32.add(t, f32.mul(a.data[i*a.l + k], b.data[k*b.w + j]))
+			}
+			m[i*b.w + j] = t
+		}
+	}
+	out = Matrix{ data: m, l: a.l, w: b.w }
+}
+
+func (m *Matrix) swapRows (rsrc i32, rdst i32) {
+	var ll i32 = (*m).l
+	var ww i32 = (*m).w
+	if rsrc == rdst || rsrc < 0 || rdst < 0 || rsrc >= ll || rdst >= ww {
+		return
+	}
+	var tmp f32
+	var tmp []f32
+	tmp = (*m).data
+	for i := 0; i < ww; i++ {
+		var sr i32 = rsrc*ww + i
+		var ds i32 = rdst*ww + i
+		tmp = tmp[sr]
+		tmp[sr] = tmp[ds]
+		tmp[ds] = tmp
+	}
+	(*m).data = tmp
+}
+
+func (m Matrix) matPos(r i32, c i32) (out i32) {
+	out = r*m.w + c
+}
+
+func (m *Matrix) normRow(r i32, divv f32) {
+	var ll i32 = (*m).l
+	var ww i32 = (*m).w
+	if ll <= r {
+		return
+	}
+	var DATA []f32 = (*m).data
+	if bool.not(f32.eq(divv, 0.0)) {
+		for j := 0; j < ww; j++ {
+			DATA[r*ww + j] = f32.div(DATA[r*ww + j], divv)
+		}
+	}
+}
+
+//UTILITY
+func (m *Matrix) linearReduction (r i32, j i32, p f32) {
+	var ll i32 = (*m).l
+	var ww i32 = (*m).w
+	var tmp []f32
+	tmp = (*m).data
+	for k := 0; k < ww; k++ {
+		tmp[j*ww + k] = tmp[j*ww + k] - p*tmp[r*ww + k]
+	}
+	(*m).data = tmp
+}
+
+func zeroMat (n i32) (out Matrix) {
+	var zr []f32
+	for i := 0; i < n*n; i++ {
+		zr = append(zr, 0.0)
+	}
+	out = Matrix{ data: zr, l: n, w: n }
+}
+
+func idMat (n i32) (out Matrix) {
+	out = zeroMat(n)
+	var fl []f32
+	fl = out.data //proxy cheating to get around immutable stuff, not the most efficient but I'm pretty lazy
+	for i := 0; i < n; i++ {
+		fl[n*i + i] = 1.0
+	}
+}
+
+func (m Matrix) pivot () (out Matrix) {
+	if m.w != m.l {
+		CXMError("Matrix isn't square!")
+	}
+	var pv []i32
+	for i := 0; i < m.l; i++ {
+		pv = append(pv, i)
+	}
+	var dx i32
+	dx = 0
+	for j := 0; j < m.l; j++ {
+		row := j
+		var max f32
+		max = m.data[dx]
+		var ixcj i32
+		ixcj = dx
+		for i := j; i < m.l; i++ {
+			if m.data[ixcj] > max {
+				max = m.data[ixcj]
+				row = i
+			}
+			ixcj = ixcj + m.l
+		}
+		if j != row {
+			var tmp i32
+			tmp = pv[row]
+			pv[row] = pv[j]
+			pv[j] = tmp
+		}
+		dx = i32.add(dx, m.l + 1)
+	}
+	var p Matrix
+	p = zeroMat(m.l)
+	var tmp []f32
+	tmp = p.data
+	var index i32
+	for i := 0; i < m.l; i++ {
+		index = i*m.l + pv[i]
+		tmp[index] = 1.0
+	}
+	out = p
+}
+
+func (m Matrix) parityUtil () (out f32) {
+	if m.w != m.l {
+		CXMError("Matrix isn't square!")
+	}
+	var parity i32 = 0
+	var pv []i32
+	pv = resize(pv, m.l)
+	for i := 0; i < len(pv); i++ {
+		pv[i] = i
+	}
+	var dx i32
+	dx = 0
+	for j := 0; j < m.l; j++ {
+		row := j
+		max := m.data[dx]
+		var ixcj i32
+		ixcj = dx
+		for i := j; i < m.l; i++ {
+			if m.data[ixcj] > max {
+				max = m.data[ixcj]
+				row = i
+			}
+			ixcj = ixcj + m.l
+		}
+		if j != row {
+			tmp := pv[row]
+			pv[row] = pv[j]
+			pv[j] = tmp
+			parity = parity + 1
+		}
+		dx = dx + m.l + 1
+	}
+	if i32.mod(parity, 2) == 0 {
+		out = 1.0
+	} else {
+		out = -1.0
+	}
+}
+
+
+func (m Matrix) lu () (out [3]Matrix) {
+	var l Matrix
+	var u Matrix
+	var p Matrix
+	var q f32
+	var a Matrix
+	l = zeroMat(m.l)
+	u = zeroMat(m.l)
+	p = m.pivot()
+	var ldata []f32
+	var udata []f32
+	ldata = l.data
+	udata = u.data
+	a = p.dot(m)
+	var jxco i32
+	jxco = 0
+	for j := 0; j < m.l; j++ {
+		ldata[jxco+j] = 1.0
+		var ixco i32
+		ixco = 0
+		for i := 0; ixco <= jxco; i++ {
+			var sum f32
+			sum = 0.0
+			var kxcj i32
+			kxcj = j
+			for k := 0; k < i; k++ {
+				sum = f32.add(sum, f32.mul(udata[kxcj], ldata[ixco+k]))
+				kxcj = i32.add(kxcj, m.l)
+			}
+			udata[ixco+j] = f32.sub(a.data[ixco+j], sum)
+			ixco = i32.add(ixco, m.l)
+		}
+		for ixco := jxco; ixco < len(a.data); ixco = i32.add(ixco, m.l) {
+			var sum f32
+			sum = 0.0
+			var kxcj i32
+			kxcj = j
+			for k := 0; k < j; k++ {
+				sum = f32.add(sum, f32.mul(udata[kxcj], ldata[ixco+k]))
+				kxcj = i32.add(kxcj, m.l)
+			}
+			ldata[ixco+j] = f32.div(f32.sub(a.data[ixco+j], sum), udata[jxco+j])
+		}
+		jxco = i32.add(jxco, m.l)
+	}
+	out[0] = l
+	out[1] = u
+	out[2] = p
+}
+
+func (m *Matrix) rref () {
+	var i i32
+	lead := 0
+	rowCount := (*m).l
+	columnCount := (*m).w
+	var DATA []f32
+	DATA = (*m).data
+	for r := 0; r < rowCount; r++ {
+		if columnCount <= lead {
+			return
+		}
+		i = r
+		for f32.eq(DATA[columnCount*i + lead], 0.0) {
+			i = i + 1
+			if rowCount == i {
+				i = r
+				lead = lead + 1
+				if columnCount == lead {
+					return
+				}
+			}
+		}
+		(*m).swapRows(i, r)
+		(*m).normRow(r, DATA[r*columnCount + lead])
+		for k := 0; k < rowCount; k++ {
+			if k != r {
+				(*m).linearReduction(r, k, DATA[k*columnCount + lead])
+			}
+		}
+		lead = i32.add(lead, 1)
+	}
+}
+
+func (m Matrix) det () (out f32) {
+	var lup [3]Matrix
+	lup = m.lu()
+	var dl f32 = 1.0
+	var du f32 = 1.0
+	var dp f32 
+	dp = m.parityUtil()
+	for i := 0; i < m.l; i++ {
+		du = f32.mul(du, lup[1].data[i*m.l + i])
+		dl = f32.mul(dl, lup[0].data[i*m.l + i])
+	}
+	out = f32.mul(dl, f32.mul(du, dp))
+}
+
+func (m Matrix) getRow (ridx i32) (out []f32) {
+	if m.l <= ridx || ridx < 0 {
+		CXMError("cannot get row out of bounds!")
+	}
+	for i := 0; i < m.w; i++ {
+		out = append(out, m.data[m.w*ridx + i])
+	}
+}
+
+func (m Matrix) getColumn (cidx i32) (out []f32) {
+	if m.w <= cidx || cidx < 0 {
+		CXMError("cannot get column out of bounds!")
+	}
+	for i := 0; i < m.l; i++ {
+		out = append(out, m.data[m.l*i + cidx])
+	}
+}
+
+func (m Matrix) getElement (r i32, c i32) (out f32) {
+	if r < 0 || c < 0 || r >= m.l || c >= m.w {
+		CXMError("cannot get element out of bounds!")
+	}
+	out = m.data[r*m.w + c]
+}
+
+func (m Matrix) inv () (out Matrix) {
+	if m.l != m.w {
+		CXMError("Matrix not square!")
+	}
+	//glue identity matrix to right
+	var aug []f32
+	var identity Matrix
+	identity = idMat(m.l)
+	for r := 0; r < m.l; r++ {
+		for c := 0; c < 2*m.w; c++ {
+			if c >= m.w {
+				aug = append(aug, identity.data[r*m.w + c - m.w])
+			} else {
+				aug = append(aug, m.data[r*m.w +c])
+			}
+		}
+	}
+	var calc Matrix
+	calc = Matrix{ data: aug, l: m.l, w: 2*m.w }
+	calc.rref()
+	var fin []f32
+	//unglue identity matrix from left
+	for r := 0; r < m.l; r++ {
+		for c := m.w; c < 2*m.w; c++ {
+			fin = append(fin, calc.data[r*calc.w + c])
+		}
+	}
+	out = Matrix{ data: fin, l: m.l, w: m.w }
+}
+
+func (m Matrix) transpose () (out Matrix) {
+	var trp []f32
+	trp = resize(trp, m.l*m.w)
+	for r := 0; r < m.l; r++ {
+		for c := 0; c < m.w; c++ {
+			trp[c*m.l + r] = m.data[r*m.w + c]
+		}
+	}
+	out = Matrix{ data: trp, l: m.w, w: m.l }
+}
+
+//func main () {
+	//var fl []f32 = []f32{ 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0}
+	//var f1 []f32 = []f32{ 1.0, 2.0, 3.0, 4.0 }
+	//var f2 []f32 = []f32{ 2.0, 0.0, 1.0, 2.0 }
+	//var lg i32 = 3
+	//var wd i32 = 4
+	//var mat Matrix 
+	//var mat2 Matrix
+	//var dotted Matrix
+	//mat = Matrix{ data: f1, l: lg, w: wd }
+	//mat2 = Matrix{ data: f2, l: wd, w: lg }
+	//var shp []i32 
+	//shp = mat.shape()
+	//printf("%d\n", shp[0])
+	//printf("%d\n", shp[1])
+	//mat.print()
+	//mat2.print()
+	//dotted = mat.dot(mat2)
+	//dotted.print()
+	//dotted = mat2.dot(mat)
+	//dotted.print()
+
+	//var fl []f32 = []f32{ 4.0, 3.0, 2.0, 1.0, 1.0, 10.0, 3.0, 4.0, 5.0, 3.0, 2.0, -4.0, 4.0, 8.0, 7.0, 9.0 }
+	//var lg i32 = 4
+	//var wd i32 = 4
+	//var mat Matrix 
+	//var mat2 Matrix
+	//mat = Matrix{ data: fl, l: lg, w: wd }
+	//mat.print()
+	//mat.swapRows(0, 1)
+	//mat.print()
+	//mat2 = mat.rref()
+	//mat2.print()
+	//mat.rref()
+	//mat.print()
+	//var det f32 = mat.det()
+	//printf("%d", det)
+	//var fl []f32 = []f32{ 11.0, 9.0, 24.0, 2.0, 1.0, 5.0, 2.0, 6.0, 3.0, 17.0, 18.0, 1.0, 2.0, 5.0, 7.0, 1.0 }
+	//var lg i32 = 4
+	//var wd i32 = 4
+	//var mat Matrix 
+	//mat = Matrix{ data: fl, l: lg, w: wd }
+	//mat.print()
+	//var det f32
+	//det = mat.det()
+	//printf("%f", det)
+	
+	//var lg i32
+	//var wd i32
+	//var mat Matrix
+	//var mat2 Matrix
+	//var fl []f32
+	//fl = []f32{ 1.0, 2.0, 3.0, 4.0, 1.0, 6.0, 7.0, 8.0, 9.0 }
+	//lg = 3
+	//wd = 3
+	//mat = Matrix{ data: fl, l: lg, w: wd }
+	//mat.print()
+	//mat2 = mat.inv()
+	//mat2.print()
+	
+	//var lg i32
+	//var wd i32
+	//var mat Matrix
+	//var mat2 Matrix
+	//var fl []f32
+	//fl = []f32{ 11.0, 12.0, 13.0, 14.0, 21.0, 22.0, 23.0, 24.0 }
+	//lg = 2
+	//wd = 4
+	//mat = Matrix{ data: fl, l: lg, w: wd }
+	//mat.print()
+	//mat2 = mat.transpose()
+	//mat2.print()
+//}

@@ -1,0 +1,83 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO:
+*/
+import random
+
+type NN struct {
+	uuid i64
+	rnd Random
+}
+
+var skymlnnuuid i64 = 0x534b594d4c204e4eL
+var skymlrnd Random
+skymlnnrnd = random(skymlnnuuid)
+
+nn = NN{ uuid: skymlnnuuid, rnd: skymlnnrnd }
+
+func (n NN) error (err str) {
+	errmsg := sprintf("SkyML: error: %s", err)
+	panic(errmsg)
+}
+
+func (n NN) cval (val f32, shp []i32) (out Tensor) {
+	var dt []f32
+	var sz i32
+	if len(shp) == 0 {
+		n.error("cannot make tensor of size zero")
+	}
+	for i := 0; i < len(shp); i++ {
+		if shp[i] < 1 {
+			n.error(sprintf("dimension %d illegal size: %d", i, shp[i]))
+		}
+		sz = i32.mul(sz, shp[i])
+	}
+	dt = resize(dt, sz)
+	for i := 0; i < len(dt); i++ {
+		dt[i] = 1.0
+	}
+	out = Tensor{ data: dt, shape: shp }
+}
+
+func (n NN) zeros (shp []i32) (out Tensor) {
+	out = n.cval(0.0, shp)
+}
+
+func (n NN) ones (shp []i32) (out Tensor) {
+	out = n.cval(1.0, shp)
+}
+
+func (n NN) checksamesize (a Tensor, b Tensor) {
+	if len(a.data) != len(b.data) || len(a.shape) != len(b.shape) {
+		nn.error(sprintf("Tensors are not equal size!"))
+	}
+	for i := 0; i < 
+}
+
+func (n NN) check_operable (a Tensor, b Tensor) {
+	afirst := i32.gteq(len(a.shape), len(b.shape))
+	upper := i32.max(len(a.shape), len(b.shape))
+	lower := i32.min(len(a.shape), len(b.shape))
+	limit := upper - lower
+	for i := upper - 1; i >= limit; i-- {
+		if afirst {
+			if a[i] != b[i - limit] {
+				n.error("tensors are not operable")
+			}
+		} else {
+			if b[i] != a[i - limit] {
+				n.error("tensors are not operable")
+			}
+		}
+	}
+}
+
+func (n NN) execute (so SkyOp, params []Parameter, outputs *[]Tensor) {
+	
+}
+
+func (n NN) backward (m Module, opt Optimizer) {
+	
+}

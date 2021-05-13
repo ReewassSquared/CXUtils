@@ -1,0 +1,61 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide functions and utilities for bessel function and connected maths things.
+
+FUNCTIONS:
+	airy(x) - returns the airy function of x
+	dairy(x) - returns the derivative of the airy function of x
+	airye(x) - returns the exponentially scaled airy function of x
+	dairye(x) - returns the exponentially scaled derivative of the airy function of x
+	airymp(x, *m, *p) - stores the modulus and phase of the airy function of x in variables m and p, respectively.
+			    x is restricted to be less than or equal to negative one.
+	dairymp(x, *m, *p) - stores the modulus and phase of the derivative of the airy function of x in variables m and p, respectively.
+			     x is restricted to be less than or equal to negative one.
+
+LAST MODIFIED:
+	29 April 2019
+*/
+package function
+include "cxmcore"
+
+var bi0cs []f32 = []f32{ -0.07660547252839144951, 1.927337953993808270, 0.2282644586920301339, 0.01304891466707290428, 0.00043442709008164874, 0.00000942265768600193, 0.00000014340062895106, 0.00000000161384906966, 0.00000000001396650044, 0.00000000000009579451, 0.00000000000000053339, 0.00000000000000000245 }
+
+var ai02cs []f32 = []f32{ 0.05449041101410882, 0.00336911647825569, 0.00006889758346918, 0.00000289137052082, 0.00000020489185893, 0.00000002266668991, 0.00000000339623203, 0.00000000049406022, 0.00000000001188914, -0.00000000003149915, -0.00000000001321580, -0.00000000000179419, 0.00000000000071801, 0.00000000000038529, 0.00000000000001539, -0.00000000000004151, -0.00000000000000954, 0.00000000000000382, 0.00000000000000176, -0.00000000000000034, -0.00000000000000027, 0.00000000000000003 }
+
+var ai0cs []f32 = []f32{ 0.07575994494023796, 0.00759138081082334, 0.00041531313389237, 0.00001070076463439, -0.00000790117997921, -0.00000078261435014, 0.00000027838499429, 0.00000000825247260, -0.00000001204463945, 0.00000000155964859, 0.00000000022925563, -0.00000000011916228, 0.00000000001757854, 0.00000000000112822, -0.00000000000114684, 0.00000000000027155, -0.00000000000002415, -0.00000000000000608, 0.00000000000000314, -0.00000000000000071, 0.00000000000000007 }
+
+func besseli0 (x f32) (out f32) {
+	var xmax f32 = f32.log(3.4028235E+38)
+	var xsml f32 = f32.sqrt(f32.mul(4.0, 5.9604645E-08))
+	var y f32
+	y = f32.abs(x)
+	if y <= xsml {
+		out = 1.0
+	} else if y <= 3.0 {
+		out = f32.add(2.75, csevutil(f32.sub(f32.div(f32.mul(y, y), 4.5), 1.0), bi0cs))
+	} else if y <= xmax {
+		out = f32.mul(f32.pow(2.71828182845904523536, y), r4_besseli0e(x))
+	} else {
+		CXMError(sprintf("X out of range for besseli0: %f", x))
+	}
+}
+
+func besseli0e (x f32) (out f32) {
+	var xsml f32 = f32.sqrt(f32.mul(4.0, 5.9604645E-08))
+	var y f32
+	y = f32.abs(x)
+	if y <= xsml {
+		out = 1.0
+	}  else if y <= 3.0 {
+		out = f32.mul(f32.pow(2.71828182845904523536, f32.mul(-1.0, y)), f32.add(2.75, csevutil(f32.sub(f32.div(f32.mul(y, y), 4.5), 1.0), bi0cs)))
+	} else if y <= 8.0 {
+		out = f32.div(f32.add(0.375, csevutil(f32.div(f32.sub(f32.div(48.0, y), 11.0), 5.0), ai0cs)), f32.sqrt(y))
+	} else  {
+		out = f32.div(f32.add(0.375, csevutil(f32.sub(f32.div(16.0, y), 1.0), ai02cs)), f32.sqrt(y))
+	}
+}
+

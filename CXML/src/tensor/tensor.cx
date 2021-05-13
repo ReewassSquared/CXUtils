@@ -1,0 +1,180 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO: ADD File header
+TODO: update Tensor library to use NN-compatible functionality
+*/
+package tensor
+import "runtime"
+
+type Tensor struct {
+	data []f32
+	shape []i32
+}
+
+func (t Tensor) print () {
+	var trk []i32
+	trk = resize(trk, len(t.shape))
+	t.vprint(trk, 0)
+}
+
+func (t Tensor) val (coord []i32) (out f32) {
+	if len(coord) != len(t.shape) {
+		nn.error(sprintf("tensor rank mismatch: %d != %d", len(coord), len(t.shape)))
+	}
+	idx := 0
+	for i := 0; i < len(t.shape) - 1; i++ {
+		if coord[i] >= t.shape[i] || coord[i] < 0 {
+			nn.error(sprintf("dimension mismatch: %d not in %d", coord[i], t.shape[i]))
+		}
+		idx = idx + coord[i]
+		idx = idx * t.shape[i]
+	}
+	idx = idx + coord[len(coord) - 1]
+	out = t.data[idx]
+}
+
+func (t Tensor) vprint (trk []i32, p i32) {
+	printf("[")
+	for ; trk[p] < t.shape[p] - 1; trk[p]++ {
+		if len(t.shape) - 1 != p {
+			t.vprint(trk, p + 1)
+			printf(", ")
+		} else {
+			printf("%f, ", t.val(trk))
+		}
+	}
+
+	if len(t.shape) - 1 != p {
+		t.vprint(trk, p + 1)
+	} else {
+		printf("%f", t.val(trk))
+	}
+	printf("]")
+}
+
+func aprint (in []i32) (out str) {
+	out = "["
+	for i := 0; i < len(in) - 1; i++ {
+		out = str.concat(out, i32.str(in[i]))
+		out = str.concat(out, ", ")
+	}
+	out = str.concat(out, i32.str(in[len(in) - 1]))
+	out = str.concat(out, "]")
+}
+
+func (t Tensor) permute (perm []i32) (out Tensor) {
+	if len(perm) != len(t.shape) {
+		nn.error("permutation array mismatch")
+	}
+	var enc []bool = resize(enc, len(perm))
+	for i := 0; i < len(perm); i++ {
+		if perm[i] < 0 || perm[i] >= len(perm) || enc[perm[i]] {
+			nn.error(sprintf("error with permutation array: %s", aprint(perm)))
+		}
+		enc[perm[i]] = true
+	}
+	var sp []i32
+	sp = resize(sp, len(t.shape))
+	for i := 0; i < len(perm); i++ {
+		sp[i] = t.shape[perm[i]]
+	}
+	var dt []f32
+	dt = resize(dt, len(t.data))
+	var spos []i32
+	spos = resize(spos, len(t.shape))
+	t.swaphelp(&spos, &dt, sp, 0, perm)
+	out = Tensor{ data: dt, shape: sp }
+}
+
+/*
+0 1 2 3 <- 10 5 3 7
+2 0 3 1 <- 3 10 7 5
+1 3 0 2
+
+4 - 1 - 2 = 1
+4 - 1 - 0 = 3
+4 - 1 - 3 = 0
+4 - 1 - 1 = 2
+len(sp) - 1 - sp[i]
+*/
+
+func getpos(pos []i32, sp []i32) (out i32) {
+	if len(pos) != len(sp) {
+		nn.error(sprintf("tensor rank mismatch: %d != %d", len(pos), len(sp)))
+	}
+	for i := 0; i < len(pos) - 1; i++ {
+		if pos[i] >= sp[i] || pos[i] < 0 {
+			nn.error(sprintf("dimension mismatch: %d not in %d", pos[i], sp[i]))
+		}
+		out = out + pos[i]
+		out = out * sp[i]
+	}
+	out = out + pos[len(pos) - 1]
+}
+
+func getpermpos(pos []i32, perm []i32, sp []i32) (out i32) {
+	var npm []i32
+	npm = resize(npm, len(pos))
+	for i := 0; i < len(pos); i++ {
+		perm[i] = len(pos) - perm[i] - 1
+		npm[i] = pos[perm[i]]
+	}
+	out = getpos(npm, sp)
+}
+
+//[a b c] = [a c b]
+
+func (t Tensor) swaphelp (pos *[]i32, dt *[]f32, nsp []i32, idx i32, pm []i32) {
+	for (*pos)[idx] = 0; (*pos)[idx] < nsp[idx]; (*pos)[idx] = (*pos)[idx] + 1 {
+		if idx != len(t.shape) - 1 {
+			swaphelp(pos, dt, nsp, idx + 1)
+		}
+		(*dt)[getpos((*pos), nsp)] = t.data[getpermpos((*pos), pm, t.shape)]
+	}
+}
+
+/*utility function you made me think of*/
+func (t Tensor) must_be_shape (sp i32) {
+	if len(t.shape) != sp {
+		nn.error(sprintf("stat_sum expected a tensor of shape %d but got %d instead", sp, len(t.shape)))
+	}
+}
+
+//DEPRACTED: USE NN VERSIONS
+func (t Tensor) sadd (v f32) (out Tensor) {
+	var dt []f32
+	dt = resize(dt, len(t.data))
+	for i := 0; i < len(t.data); i++ {
+		dt[i] = v + t.data[i]
+	}
+	out = Tensor{ data: dt, shape: t.shape }
+}
+
+func (t Tensor) ssub (v f32) (out Tensor) {
+	var dt []f32
+	dt = resize(dt, len(t.data))
+	for i := 0; i < len(t.data); i++ {
+		dt[i] = t.data[i] - v
+	}
+	out = Tensor{ data: dt, shape: t.shape }
+}
+
+func (t Tensor) smul (v f32) (out Tensor) {
+	var dt []f32
+	dt = resize(dt, len(t.data))
+	for i := 0; i < len(t.data); i++ {
+		dt[i] = f32.mul(v, t.data[i])
+	}
+	out = Tensor{ data: dt, shape: t.shape }
+}
+
+func (t Tensor) sdiv (v f32) (out Tensor) {
+	var dt []f32
+	dt = resize(dt, len(t.data))
+	for i := 0; i < len(t.data); i++ {
+		dt[i] = f32.div(t.data[i], v)
+	}
+	out = Tensor{ data: dt, shape: t.shape }
+}

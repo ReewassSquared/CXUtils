@@ -1,0 +1,67 @@
+/*
+CXML: The first blockchain machine learning library
+
+Structure:
+The main focus of the library is to provide functionality for neural networks in CX. The main component of a network is known as a Module.
+Modules can contain other modules and/or parameters. Parameters are just tensors. all are accessed using a name. E.x:
+	import skyml
+	var myModule Module = nn.module("my_module")
+	myModule.addparam("my_parameter", nn.zeros([]i32{ 10, 10 }))
+	myModule.addchild(nn.module("my_child"))
+	var myParam Tensor = myModule.getparam("my_parameter")
+	var myChild Module = myModule.getchild("my_child")
+
+The core operational part of skyML are serialized programs which use an internal byte code and run on the skyML engine. These are known as SkyOps.
+The skyML engine is a virtual machine which executes SkyOps. The singleton instance of NN, nn, manages and contains the runtime utilities.
+SkyOps are built from the core instruction set for skyML. Because of this, skyML programs and SkyOps are agnostic to any back end. This means a program running on a CPU could also run on a GPU, or a TPU, as long as skyML supports the back end.
+Currently, skyML is targeted to run on CPU, with GPU implementation using CUDA a goal for the official rlease.
+A SkyOp is compiled from a script written in a simple language known as Skym. However, this functionality will not be targeted until release. Most SkyOps are assembled from a sequence of actions between children and parameters like so:
+	import skyml
+	var myModule Module = nn.module("my_module")
+	var myMLP Module = nn.mlp("my_mlp", 100, 10, "tanh")
+	var myMLP2 Module = nn.mlp("my_mlp2", 2, 100, "tanh")
+	myModule.addchild(myMLP)
+	myModule.addchild(myMLP2)
+	myModule.addparam("my_param", []i32{ 2, 1 })
+	myModule.addparam("input", []i32{ 1, 10 })
+	myModule.op_pass("input", "my_mlp") //pass input through my_mlp and store result in output
+	myModule.op_pass("output", "my_mlp2")  //pass output through my_mlp2 and store result in output
+	myModule.addop("add", "output", "my_param", "output")
+output is a predefined parameter. Keeping track of gradients means that these intermediate values must be kept track of while gradients are turned on. input must be defined in order for the module to work.  
+for every op added to a SkyOp, there is an equal and opposite op. This allows all forward functionality to derive its own backprop algorithm. This means that gradients are automatically calculated, and to define a forward SkyOp in a module is all that is needed. This is a form of automatic differentiation.
+Now that this is well understood, here's an example of a complete program:
+	import skyml
+
+	func main () {
+		nn.init()
+
+		var model Module = nn.sequential("model", []Module{
+					nn.mlp("mlp1", 100, 10, "tanh"),
+					nn.mlp("mlp2", 10, 100, "tanh"),
+					nn.softmax("softmax", 0)
+			})
+
+		model.init_grads() //must be called if training model
+		model.add_loss(nn.MSE("mean")) //adds an mse term to the loss
+		model.optimizer(nn.SGD()) //adds optimizer to the model, required for training
+
+		var data Tensor
+		var target Tensor
+		for i := 0; i < 1000; i++ {
+			data = nn.random([]i32{ 1, 10 })
+			target = nn.random([]i32{ 1, 10 })
+			loss := model.train(data, target) //fwd, keeps layer outputs and calculates loss
+			model.backward() //calculates gradients
+			model.optimizer_step() //updates parameters according to optimizer
+		}
+
+		data = nn.random([]i32{ 1, 10 })
+		var actual Tensor = model.eval(data)
+		actual.print()
+	}
+This is skyML. It should be evident that our layout and structure is similar to torch, which is because torch is a great machine learning library.
+I will be getting other developers to help me with the back end for CUDA. I can make the majority of this myself for now.
+Cheers.
+-Geoffrey Kublin
+*/
+package skyml

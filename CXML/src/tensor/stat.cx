@@ -1,0 +1,128 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO: Finish.
+*/
+package tensor
+
+/*Amaury's stat functions :) */
+//computes the sum of t
+func (t Tensor) stat_sum () (out f32) {
+	t.must_be_shape(1)
+	for i := 0; i < len(t.data); i++ {
+		out = out + t.data[i]
+	}
+}
+
+//computes the mean of t
+func (t Tensor) stat_mean () (out f32) {
+	t.must_be_shape(1)
+	for i := 0; i < len(t.data); i++ {
+		out = out + t.data[i]
+	}
+	out = f32.div(out, i32.f32(len(t.data)))
+}
+
+//computes the variance of t
+func (t Tensor) stat_var () (out f32) {
+	t.must_be_shape(1)
+	var mu f32 = t.stat_mean()
+	var tmp f32
+	for i := 0; i < len(t.data); i++ {
+		tmp = (t.data[i] - mu)
+		out = out + tmp * tmp
+	}
+	out = f32.div(out, i32.f32(len(t.data)) - 1.0)
+}
+
+//computes the standard deviation of t
+func (t Tensor) stat_sdev () (out f32) {
+	t.must_be_shape(1)
+	var v f32 = t.stat_var()
+	out = f32.sqrt(v)
+}
+
+//computes the square-sum of t
+func (t Tensor) stat_sum_sq () (out f32) {
+	t.must_be_shape(1)
+	for i := 0; i < len(t.data); i++ {
+		out = out + t.data[i] * t.data[i]
+	}
+}
+
+//calculates the product-sum of x-samples t and y-samples u
+func (t Tensor) stat_sum_xy (u Tensor) (out f32) {
+	t.must_be_shape(1)
+	nn.check_operable(t, u)
+	for i := 0; i < len(t.data); i++ {
+		out = out + t.data[i] * u.data[i]
+	}
+}
+
+//calculates the covariance between x-samples t and y-samples u
+func (t Tensor) stat_cov (u Tensor) (out f32) {
+	t.must_be_shape(1)
+	nn.check_operable(t, u)
+	var tmu f32 = t.stat_mean()
+	var umu f32 = u.stat_mean()
+	for i := 0; i < len(t.data); i++ {
+		out = out + t.data[i] * u.data[i]
+	}
+	out = f32.div(out, i32.f32(len(t.data)))
+	out = f32.div(out - tmu * umu, i32.f32(len(t.data)))
+}
+
+//calculates the pearson correlation coefficient between x-samples t and y-samples u
+func (t Tensor) stat_corr (u Tensor) (out f32) {
+	var cv f32 = t.stat_cov(u)
+	var st f32 = t.stat_sdev()
+	var su f32 = u.stat_sdev()
+	out = cv / (st * su)
+}
+
+//computes a sum of squared differences between a vector set and its mean
+func (t Tensor) sum_sum_d2 () (out f32) {
+	t.must_be_shape(1)
+	var mu f32 = t.stat_mean()
+	for i := 0; i < len(t.data); i++ {
+		out = out + (t.data[i] - mu) * (t.data[i] - mu)
+	}
+}
+
+//computes a sum of squared differences between x-samples t and y-samples u
+func (t Tensor) stat_sum_xy (u Tensor) (out f32) {
+	t.must_be_shape(1)
+	nn.check_operable(t, u)
+	for i := 0; i < len(t.data); i++ {
+		out = out + (t.data[i] - u.data[i]) * (t.data[i] - u.data[i])
+	}
+}
+
+//computes slope and bias of a linear regression of x-samples t and y-samples u
+func (t Tensor) stat_regression (u Tensor) (m f32, b f32) {
+	t.must_be_shape(1)
+	nn.check_operable(t, u)
+	var st f32 = t.stat_sdev()
+	var su f32 = u.stat_sdev()
+	var r f32 = t.stat_corr(u)
+	m = r * f32.div(st, su)
+	var tmu f32 = t.stat_mean()
+	var umu f32 = u.stat_mean()
+	b = umu - m * tmu
+}
+
+func (t Tensor) stat_moment (moment i32) (out f32) {
+	t.must_be_shape(1)
+	for i := 0; i < len(t.data); i++ {
+		h := 1.0
+		for j := 0; j < moment; j++ {
+			h *= t.data[i]
+		}
+		out += h
+	}
+}
+
+func (t Tensor) stat_corr_mat (
+	
+}

@@ -1,0 +1,167 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide inverse trigonometric functions and utilities
+
+FUNCTIONS:
+	 atan2(x, y) - returns the arctangent of y over x
+	 atan(x) - returns the arctangent of x
+	 asin(x) - returns the arcsine of x
+	 acos(x) - returns the arccosine of x
+	 asec(x) - returns the arcsecant of x
+	 acsc(x) - returns the arccosecant of x
+	 acot(x) - returns the arccotangent of x
+
+LAST MODIFIED:
+	27 April 2019
+*/
+package function
+import "cxmcore"
+
+var asincs []f32 = []f32{ 0.10246391753227159, 0.054946487221245833, 0.004080630392544969, 0.000407890068546044, 0.000046985367432203, 0.000005880975813970, 0.000000777323124627, 0.000000106774233400, 0.000000015092399536, 0.000000002180972408, 0.000000000320759842, 0.000000000047855369, 0.000000000007225128, 0.000000000001101833, 0.000000000000169476, 0.000000000000026261, 0.000000000000004095, 0.000000000000000642, 0.000000000000000101, 0.000000000000000016 }
+var atancs []f32 = []f32{ 0.48690110349241406E+00, -0.006510831636717464E+00, 0.000038345828265245E+00, -0.000000268722128762E+00, 0.000000002050093098E+00, -0.000000000016450717E+00, 0.000000000000136509E+00, -0.000000000000001160E+00, 0.000000000000000010E+00 }
+var conpi8 []f32 = []f32{ 0.375E+00,  0.75E+00, 1.125E+00, 1.5E+00 }
+var tanp8 []f32 = []f32{ 0.414213562373095048E+00, 1.0E+00, 2.41421356237309504E+00 }
+var pi8 []f32 = []f32{ 0.176990816987241548E-01, 0.353981633974483096E-01, 0.530972450961724644E-01, 0.0707963267948966192E+00 }
+
+func acos (x f32) (out f32) {
+	out = f32.sub(1.57079632679489661923, asin(x))
+}
+
+func asin (x f32) (out f32) {
+	var sqeps f32
+	var y f32
+	var z f32
+	sqeps = f32.sqrt(f32.mul(6.0, 5.9604645E-08))
+
+	y = f32.abs(x)
+	if x < f32.sub(-1.0, sqeps) || x > f32.add(1.0, sqeps) {
+		CXMError(sprintf("x out of range for asin(x): ", x))
+	} else if x < -1.0 {
+		out = -1.57079632679489661923
+	} else if x < 1.0 {
+		z = 0.0
+		if sqeps < y {
+			z = f32.mul(y, y)
+		}
+
+		if z <= 0.5 {
+			out = f32.mul(x, f32.add(1.0, csevutil(f32.sub(f32.mul(4.0, z), 1.0), asincs)))
+		} else {
+			out = f32.sub(1.57079632679489661923, f32.mul(f32.sqrt(f32.sub(1.0, z)), f32.add(1.0, csevutil(f32.sub(3.0, f32.mul(4.0, z)), asincs))))
+		}
+
+		if x < 0.0 {
+			out = f32.mul(-1.0, out)
+		}
+	} else {
+		out = 1.57079632679489661923
+	}
+}
+
+func atan (x f32) (out f32) {
+	var n i32
+	var sqeps f32 = 0.0
+	var t f32
+	var xbig f32 = 0.0
+	var xbnd1 f32 = 0.198912367379658006
+	var xbnd2 f32 = 0.668178637919298919
+	var xbnd3 f32 = 1.49660576266548901
+	var xbnd4 f32 = 5.02733949212584810
+	var y f32
+
+	sqeps = f32.sqrt(f32.mul(6.0, 5.9604645E-08))
+	xbig = f32.div(1.0, 5.9604645E-08)
+
+	y = f32.abs(x)
+
+	if y <= xbnd1 {
+		out = x
+		if sqeps < y {
+			out = f32.mul(x, f32.add(0.75E+00, csevutil(f32.sub(f32.mul(50.0, f32.mul8(y, y)), 1.0), atancs)))
+		}
+  	} else if y <= xbnd4 {
+		if xbnd3 < y {
+      			n = 3
+    		} else if xbnd2 < y {
+      			n = 2
+    		} else {
+      			n = 1
+    		}
+
+		t = f32.div(f32.sub(y, tanp8[n-1]), f32.add(1.0E+00, f32.mul(y, tanp8[n-1])))
+		out = f32.add(conpi8[n-1], f32.add(pi8[n-1], f32.mul(t, f32.mul(f32.add(0.75, csevutil(f32.sub(f32.mul(50.0, f32.mul(t, t)), 1.0), atancs))))))
+  	} else {
+    		out = f32.add(conpi8[3], pi8[3])
+		if y < xbig {
+			out = f32.add(conpi8[3], f32.sub(pi8[3], f32.div(f32.add(0.75, csevutil(f32.sub(f32.div(f32.div(50.0, y), y), 1.0), atancs)), y)))
+		}
+	}
+	if x < 0.0 {
+    		out = f32.mul(-1.0, out)
+	}
+}
+
+func atan2(sn f32, cs f32) (out f32) {
+	var abscs f32
+	var abssn f32
+	var big f32 = 0.0
+	var pi f32 = 3.14159265358979323846
+	var sml f32 = 0.0
+  
+	if sml == 0.0 {
+		sml = 1.1754944E-38
+    		big = 3.4028235E+38
+	}
+	abssn = f32.abs(sn)
+	abscs = f32.abs(cs)
+
+	if abscs <= abssn {
+		if abscs < 1.0 && f32.mul(abscs, big) <= abssn {
+			if sn < 0.0 {
+        			out = f32.mul(-0.5, pi)
+			} else if sn == 0.0 {
+				CXMError("div by zero in atan2")
+			} else {
+				out = f32.mul(0.5, pi)
+			}
+			return
+    		}
+  	} else {
+    		if 1.0 < abscs && abssn <= f32.mul(abscs, sml) {
+			if 0.0 <= cs {
+				out = 0.0
+			} else {
+				out = pi
+			return
+		}
+	}
+	out = atan(f32.div(sn, cs))
+ 	if cs < 0.0 {
+    		out = f32.add(out, pi)
+	}
+	if pi < out {
+		out = f32.sub(out, f32.mul(2.0, pi))
+	}
+}
+
+func asec (x f32) (out f32) {
+	if x < 1.0 && x > -1.0 {
+		CXMError(sprintf("x out of bounds for asec: %f", x))
+	}
+	out = acos(f32.div(1.0, x))
+}
+
+func acsc (x f32) (out f32) {
+	if x < 1.0 && x > -1.0 {
+		CXMError(sprintf("x out of bounds for acsc: %f", x))
+	}
+	out = asin(f32.div(1.0, x))
+}
+
+func acot (x f32) (out f32) {
+	out = f32.sub(1.57079632679489661923, atan(x))
+}

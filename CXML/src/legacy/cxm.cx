@@ -1,0 +1,12 @@
+/*
+2019 Brandon Koerner
+
+This is a Legacy file used in some of the CXM libraries.
+*/
+
+package cxmcore
+
+func CXMError (in str) {
+	printf("CXM Error: %s", in)
+	assert(false)
+}

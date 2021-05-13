@@ -1,0 +1,47 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO:
+*/
+package module
+
+import "runtime"
+import "skyop"
+import "tensor"
+
+type Module struct {
+	name str             //all modules have a name
+	children *[]Module   //may define an op through a child layer
+	params *[]Tensor     //all parameters are tensors
+	paramnames []str     //parameters are accessed using their name
+	ops []SKYOP          //the operations sequence for the 
+	using_grads bool     //is the model using gradients
+	optimizer *Optimizer //optimizer
+}
+
+func (m Module) getparamindex (nm str) (out i32) {
+	var idx i32 = -1
+	var i i32 = 0
+	for ; nm != m.paramnames[i] && i < len(m.(*params)); i++ {
+	}
+	if i < len(m.(*params)) {
+		idx = i
+	}
+	out = idx
+}
+
+func (m Module) getparam (nm str) (out Tensor) {
+	var idx i32 = m.getparamindex(nm)
+	if idx > -1 && idx < len(m.(*params)) {
+		out = m.(*params)[idx]
+	} else {
+		nn.error(sprintf("no parameter found with name: %s", nm))
+	}
+}
+
+func (m *Module) updateparam (nm str, t Tensor) {
+	var idx i32 = (*m).getparamindex(nm)
+	var update Tensor = (*m).getparam(nm)
+	(*m).(*params)[idx] = update.sub(t)
+}

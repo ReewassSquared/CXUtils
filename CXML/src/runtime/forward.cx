@@ -1,0 +1,287 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO: Finish softmax, etc.
+*/
+package runtime
+
+import "random"
+import "tensor"
+
+func (n NN) sub_ (a Tensor, b Tensor) (out Tensor) {
+	n.check_operable(a, b)
+	upper := i32.max(len(a.data), len(b.data))
+	afirst = i32.gteq(len(a.shape), len(b.shape))
+	var dt []f32 = resize(dt, upper)
+
+	for i := 0; i < upper && afirst; i++ {
+		dt[i] = a.data[i] - b.data[i32.mod(i, len(b.data))]
+	}
+
+	for i := 0; i < upper && bool.not(afirst); i++ {
+		dt[i] = a.data[i32.mod(i, len(a.data))] - b.data[i]
+	}
+
+	if afirst {
+		out = Tensor{ data: dt, shape: a.shape }
+	} else {
+		out = Tensor{ data: dt, shape: b.shape }
+	}
+}
+
+func (n NN) add_ (a Tensor, b Tensor) (out Tensor) {
+	n.check_operable(a, b)
+	upper := i32.max(len(a.data), len(b.data))
+	afirst = i32.gteq(len(a.shape), len(b.shape))
+	var dt []f32 = resize(dt, upper)
+
+	for i := 0; i < upper && afirst; i++ {
+		dt[i] = a.data[i] + b.data[i32.mod(i, len(b.data))]
+	}
+
+	for i := 0; i < upper && bool.not(afirst); i++ {
+		dt[i] = b.data[i] + a.data[i32.mod(i, len(a.data))]
+	}
+
+	if afirst {
+		out = Tensor{ data: dt, shape: a.shape }
+	} else {
+		out = Tensor{ data: dt, shape: b.shape }
+	}
+}
+
+func (n NN) mul_(a Tensor, b Tensor) (out Tensor) {
+	n.check_operable(a, b)
+	upper := i32.max(len(a.data), len(b.data))
+	afirst = i32.gteq(len(a.shape), len(b.shape))
+	var dt []f32 = resize(dt, upper)
+
+	for i := 0; i < upper && afirst; i++ {
+		dt[i] = a.data[i] * b.data[i32.mod(i, len(b.data))]
+	}
+
+	for i := 0; i < upper && bool.not(afirst); i++ {
+		dt[i] = b.data[i] * a.data[i32.mod(i, len(a.data))]
+	}
+
+	if afirst {
+		out = Tensor{ data: dt, shape: a.shape }
+	} else {
+		out = Tensor{ data: dt, shape: b.shape }
+	}
+}
+
+func (n NN) div_(a Tensor, b Tensor) (out Tensor) {
+	n.check_operable(a, b)
+	upper := i32.max(len(a.data), len(b.data))
+	afirst = i32.gteq(len(a.shape), len(b.shape))
+	var dt []f32 = resize(dt, upper)
+
+	for i := 0; i < upper && afirst; i++ {
+		dt[i] = a.data[i] / b.data[i32.mod(i, len(b.data))]
+	}
+
+	for i := 0; i < upper && bool.not(afirst); i++ {
+		dt[i] = a.data[i32.mod(i, len(a.data))] / b.data[i]
+	}
+
+	if afirst {
+		out = Tensor{ data: dt, shape: a.shape }
+	} else {
+		out = Tensor{ data: dt, shape: b.shape }
+	}
+}
+
+func (n NN) sqrt_ (a Tensor) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		dt[i] = f32.sqrt(a.data[i])
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) square_ (a Tensor) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		dt[i] = a.data[i] * a.data[i]
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) exp_ (a Tensor) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		dt[i] = f32.pow(2.718281828, a.data[i])
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) relu_ (a Tensor) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		if a.data[i] >= 0.0 {
+			dt[i] = a.data[i]
+		else {
+			dt[i] = 0.0
+		}
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) lrelu_ (a Tensor, l f32) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		if a.data[i] >= 0.0 {
+			dt[i] = a.data[i]
+		else {
+			dt[i] = l
+		}
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) prelu_ (a Tensor, p Tensor) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		if a.data[i] >= 0.0 {
+			dt[i] = a.data[i]
+		else {
+			dt[i] = p.data[i] * a.data[i]
+		}
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) elu_ (a Tensor, l f32) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		if a.data[i] >= 0.0 {
+			dt[i] = a.data[i]
+		else {
+			dt[i] = l * (f32.pow(2.718281828, a.data[i]) - 1.0)
+		}
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) trelu_ (a Tensor, t f32) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data))
+	for i := 0; i < len(a.data); i++ {
+		if a.data[i] >= t {
+			dt[i] = a.data[i]
+		else {
+			dt[i] = 0.0
+		}
+	}
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+func (n NN) vecdot_ (a Tensor, b Tensor) (out f32) {
+	if len(a.shape) != 1 || len(b.shape) != 1 {
+		n.error(sprintf("vecdot error: tensors are not of rank one: a = %d, b = %d", len(a.shape), len(b.shape)))
+	} else if len(a.data) != len(b.data) {
+		n.error(sprintf("vecdot error: tensors are not of same dimension! %d != %d", len(a.data), len(b.data)))
+	}
+
+	for i := 0; i < a.shape[0]; i++ {
+		out = out + a.data[i] * b.data[i]
+	}
+}
+
+func (n NN) vecmat_ (a Tensor, b Tensor) (out Tensor) {
+	var dt []f32 = resize(dt, len(a.data)/b.shape[0])
+	var sp []i32
+
+	for i := 0; i < len(a.shape) - 1; i++ {
+		sp = append(sp, a.shape[i])
+	}
+
+	for i := 0; i < len(a.data)/b.shape[0]; i++ {
+		dt[i] = a.data[i] * b.data[i32.mod(i, b.shape[0])]
+	}
+
+	out = Tensor{ data: dt, shape: sp }
+}
+
+func (n NN) dot_ (a Tensor, b Tensor) (out Tensor) {
+	if len(a.shape) < len(b.shape) {
+		n.error(sprintf("dot product error: first tensor argument must be of greater or equal rank than second tensor argument: %d >= %d", len(a.shape), len(b.shape)))
+	} else if len(a.shape) == 1 {
+		out = n.vecdot_(a, b)
+	} else if len(b.shape) == 1 && a.shape[len(a.shape)-1] == b.shape[0] {
+		out = n.vecmat_(a, b)
+	} else if a.shape[len(a.shape)-1] != b.shape[len(a.shape)-2] {
+		n.error(sprintf("dot product error: tensor matching dimension error! %d != %d", a.shape[len(a.shape)-1], b.shape[len(a.shape)-2]))
+	} else {
+		var dt []f32 = resize(dt, len(a.data)/b.shape[0])
+		//TODO: FINISH
+	}
+}
+
+func (n NN) sum_ (a Tensor, axis i32) (out Tensor) {
+	outshape := []i32{}
+	nsp := 1
+
+	for i := 0; i < len(a.shape); i++ {
+		if i != axis {
+			outshape = append(outshape, a.shape[i])
+			nsp = nsp * a.shape[i]
+		}
+	}
+
+	if len(outshape) == 0 {
+		outshape = append(outshape, 1)
+	}
+
+	var outdata []f32 = resize(outdata, nsp)
+
+	stat := 1
+	for i := len(a.shape) - 1; a > axis; i-- {
+		stat = stat * a.shape[i]
+	}
+
+	for c := 0; c < len(outshape); c = c + stat {
+		for i := 0; i < stat * a.shape[axis]; i++ {
+			outdata[i32.mod(i, stat) + c] = outdata[i32.mod(i, stat) + c] + a.data[i + c * a.shape[axis]]
+		}
+	}
+
+	out = Tensor{ data: outdata, shape: outshape }
+}
+
+func (n NN) softmax_ (a Tensor, axis i32) (out Tensor) {
+	if axis >= len(a.shape) {
+		n.error(sprintf("axis out of range: %d >= %d", axis, len(a.shape)))
+	}
+	var dt []f32 = resize(dt, len(a.data))
+	var a_exp Tensor = n.exp_(a)
+	var axial_sum []f32 = n.sum_(a_exp, axis)
+
+	stat := 1
+	for i := len(a.shape) - 1; a > axis; i-- {
+		stat = stat * a.shape[i]
+	}
+
+	for c := 0; c < len(axial_sum.data); c = c + stat {
+		for i := 0; i < stat * a.shape[axis]; i++ {
+			dt[i + c * a.shape[axis]] = a_exp.data[i + c * a.shape[axis]] / axial_sum.data[i32.mod(i, stat) + c]
+		}
+	}
+
+	out = Tensor{ data: dt, shape: a.shape }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

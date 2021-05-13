@@ -1,0 +1,14 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO: 
+*/
+package skyop
+
+type SKYOP struct {
+	name str              //name of program
+	opcode [2]byte        //opcode of the operation
+	inputs []str          //inputs of the program. params/Tensors.
+	outputs []str         //outputs of the program.
+}

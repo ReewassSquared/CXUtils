@@ -1,0 +1,25 @@
+/*
+2019 Brandon Koerner
+2019 Skycoin CX
+
+TODO:
+*/
+package module
+
+import "runtime"
+import "skyop"
+import "tensor"
+
+/*
+Optimizer contains a specific skyop and parameters for updating, with a module reference for updating parameters. Parameter depth for momentum SGD equals model reference.
+*/
+type Optimizer struct {
+	name str
+	module *Module
+	updaterule []SKYOP   //update rule, one per gradient.
+	loss *Module         //loss program
+	grads *[]Tensor      //gradients.
+	gradnames []str      //so we can get the correct corresponding gradient
+	params *[]Tensor     //Optimizer may need to store things
+	paramnames []str     //^ names for above
+}
