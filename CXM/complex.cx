@@ -1,0 +1,46 @@
+package cxm
+
+type Complex struct {
+	r f32
+	i f32
+}
+
+func (a *Complex) cadd (b Complex) {
+	(*a).r = f32.add((*a).r, b.r)
+	(*a).i = f32.add((*a).i, b.i)
+}
+
+func (a *Complex) csub (b Complex) {
+	(*a).r = f32.sub((*a).r, b.r)
+	(*a).i = f32.sub((*a).i, b.i)
+}
+
+func (c Complex) conj () (out Complex) {
+	var nci f32
+	nci = f32.mul(-1.0, c.i)
+	out = Complex{ r: c.r, i: nci }
+}
+
+func (a *Complex) cmul (b Complex) {
+	(*a).r = f32.sub(f32.mul((*a).r, b.r), f32.mul((*a).i, b.i))
+	(*a).i = f32.add(f32.mul((*a).r, b.i), f32.mul((*a).i, b.r))
+}
+
+func (a *Complex) csmul (b f32) {
+	(*a).r = f32.mul((*a).r, b)
+	(*a).i = f32.mul((*a).i, b)
+}
+
+func (c Complex) abs () (out f32) {
+	out = f32.sqrt(f32.add(f32.mul(c.r, c.r), f32.mul(c.i, c.i)))
+}
+
+func (c Complex) inv () (out Complex) {
+	
+}
+
+var d str = "print"
+
+        for i := 0; i < len(d); i++ {
+                str.print(str.substr(d, i, i+1))
+        }   

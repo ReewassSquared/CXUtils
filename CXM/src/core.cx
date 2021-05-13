@@ -1,0 +1,6 @@
+package cxm
+
+func CXMError (in str) {
+	printf("CXM Error: %s", in)
+	assert(false)
+}

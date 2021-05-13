@@ -1,0 +1,133 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide hyperbolic functions and utilities
+
+FUNCTIONS:
+	sinh(x) - returns hyperbolic sine of x
+	cosh(x) - returns hyperbolic cosine of x
+	tanh(x) - returns hyperbolic tangent of x
+	asinh(x) - returns hyperbolic arcsine of x
+	acosh(x) - returns hyperbolic arccosine of x
+	atanh(x) - returns hyperbolic arctangent of x
+
+LAST MODIFIED:
+	27 April 2019
+*/
+package cxmr32hyper
+import "cxmcore"
+import "csevutil"
+
+var asnhcs []f32 = []f32{ -0.12820039911738186, -0.058811761189951768, 0.004727465432212481, -0.000493836316265361, 0.000058506207058557, -0.000007466998328931, 0.000001001169358355, -0.000000139035438587, 0.000000019823169483, -0.000000002884746841, 0.000000000426729654, -0.000000000063976084, 0.000000000009699168, -0.000000000001484427, 0.000000000000229037, -0.000000000000035588, 0.000000000000005563, -0.000000000000000874, 0.000000000000000138, -0.000000000000000021 }
+
+var atnhcs []f32 = []f32{ 0.094395102393195492, 0.049198437055786159, 0.002102593522455432, 0.000107355444977611, 0.000005978267249293, 0.000000350506203088, 0.000000021263743437, 0.000000001321694535, 0.000000000083658755, 0.000000000005370503, 0.000000000000348665, 0.000000000000022845, 0.000000000000001508, 0.000000000000000100, 0.000000000000000006 }
+
+var tanhcs []f32 = []f32{ -0.25828756643634710, -0.11836106330053497, 0.009869442648006398, -0.000835798662344582, 0.000070904321198943, -0.000006016424318120, 0.000000510524190800, -0.000000043320729077, 0.000000003675999055, -0.000000000311928496, 0.000000000026468828, -0.000000000002246023, 0.000000000000190587, -0.000000000000016172, 0.000000000000001372, -0.000000000000000116, 0.000000000000000009 }
+
+var sinhcs []f32 = []f32{ 0.1730421940471796, 0.08759422192276048, 0.00107947777456713, 0.00000637484926075, 0.00000002202366404, 0.00000000004987940, 0.00000000000007973, 0.00000000000000009 }
+
+func acosh (x f32) (out f32) {
+	var aln2 f32 = 0.69314718055994530942E+00
+	var xmax f32 = f32.div(1.0, f32.sqrt(5.9604645E-08))
+	if x < 1.0 {
+		CXMError(sprintf("X out of range for acosh: %f", x))
+	}
+	if x < xmax {
+		out = f32.log(f32.add(x, f32.sqrt(f32.sub(f32.mul(x, x), 1.0E+00)), x))
+	} else {
+		out = f32.add(aln2, f32.log(x))
+	}
+}
+
+func asinh (x f32) (out f32) {
+	var aln2 f32 = 0.69314718055994530942E+00
+	var sqeps f32 = f32.sqrt(5.9604645E-08)
+	var xmax f32 = f32.div(1.0, sqeps)
+	var y f32 = f32.abs(x)
+
+	if y <= 1.0 {
+		out = x
+		if sqeps < y {
+			out = f32.mul(x, f32.add(1.0, csevutil(f32.add(f32.mul(2.0, f32.mul(x, x)), 1.0), asnhcs)))
+		}
+	} else {
+		if y < xmax {
+			out = f32.log(f32.add(y, f32.sqrt(f32.sub(f32.mul(y, y), 1.0))))
+		} else {
+			out = f32.add(aln2, f32.log(y))
+		}
+		if x < 0.0 {
+			out = f32.mul(out, -1.0)
+		}
+	}
+}
+
+func atanh (x f32) (out f32) {
+	var sqeps f32 = f32.sqrt(f32.mul(3.0, 5.9604645E-08))
+	var y f32 = f32.abs(x)
+	if y <= sqeps {
+		out = x
+	} else if y <= 0.5 {
+		out = f32.mul(x, f32.add(1.0, csevutil(f32.sub(f32.mul8.0, f32.mul(x, x)), 1.0), atnhcs)))
+	} else if y < 1.0 {
+		out = f32.mul(0.5, f32.log(f32.div(f32.add(1.0, x), f32.sub(1.0. x))))
+	} else {
+		CXMError(sprintf("X out of range for atanh: %f", x)) 
+	}
+}
+
+func tanh (x f32) (out f32) {
+	var sqeps f32 = f32.sqrt(f32.mul(3.0, 5.9604645E-08))
+	var xmax f32 = f32.mul(-0.5, f32.log(5.9604645E-08))
+	var y f32 = f32.abs(x)
+	if y <= sqeps {
+		out = x
+	} else if y <= 1.0 {
+		out = f32.mul(x, f32.add(1.0, csevutil(f32.sub(f32.mul(2.0, f32.mul(x, x)), 1.0), tanhcs)))
+	} else if y <= xmax {
+		y = f32.pow(2.71828182845904523536, y)
+		out = f32.div(f32.sub(y, f32.div(1.0, y)), f32.add(y, f32.div(1.0, y)))
+		if x < 0.0 {
+			out = f32.mul(-1.0, out)
+		}
+	} else {
+		if x < 0.0 {
+			out = -1.0
+		} else {
+			out = 1.0
+		}
+	}
+}
+
+func sinh (x f32) (out f32) {
+	var sqeps f32 = f32.sqrt(f32.mul(6.0, 5.9604645E-08))
+	var ymax f32 = f32.div(1.0, f32.sqrt(5.9604645E-08))
+	var y f32 = f32.abs(x)
+	if y <= sqeps {
+		out = x
+	} else if y <= 1.0 {
+		out = f32.mul(x, f32.add(1.0, csevutil(f32.sub(f32.mul(2.0, f32.mul(x, x)), 1.0), sinhcs)))
+	}  else {
+		y = f32.pow(2.71828182845904523536, y)
+		if ymax <= y {
+			out = f32.mul(0.5, y)
+		} else {
+			out = f32.mul(0.5, f32.sub(y, f32.div(1.0, y)))
+		}
+		if x < 0.0 {
+			out = f32.mul(-1.0, out)
+		}
+	}
+}
+
+func cosh (x f32) (out f32) {
+	var y f32 = f32.pow(2.71828182845904523536, f32.abs(x))
+	var ymax f32 = f32.div(1.0, f32.sqrt(5.9604645E-08))
+	out = f32.mul(0.5, y)
+	if y < ymax {
+		out = f32.mul(0.5, f32.add(y, f32.div(1.0, y)));
+	}
+}

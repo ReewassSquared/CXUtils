@@ -1,0 +1,20 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide the power function (x^a)
+
+INPUT:
+	x f32 - number to exponentiate
+	a f32 - exponent
+
+LAST MODIFIED:
+	26 April 2019
+*/
+package cxmr32pow
+
+func pow (x f32, a f32) (out f32) {
+	out = f32.pow(x, a)
+}

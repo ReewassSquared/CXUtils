@@ -1,0 +1,8 @@
+package main
+
+func main () {
+	g := 1.54269504088896338700D
+	var int i32
+	int = f64.i32(g)
+	i32.print(int)
+}

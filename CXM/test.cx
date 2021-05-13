@@ -1,0 +1,234 @@
+package main
+
+func CXMError(in str) {
+	printf("error: %s", in)
+	//exit  program here
+}
+
+type Matrix struct {
+	l i32
+	w i32
+	data []f32
+}
+
+func (m Matrix) print () {
+	printf("[")
+	for j := 0; j < m.l - 1; j++ {
+		printf("[")
+		for i := 0; i < m.w - 1; i++ {
+			printf("%f, ", m.data[j*m.w + i])
+		}
+		if m.w > 0 {
+			printf("%f],\n", m.data[j*m.w + m.w-1])
+		}
+	}
+	if m.l > 0 {
+		printf("[")
+		for i := 0; i < m.w - 1; i++ {
+			printf("%f, ", m.data[(m.l - 1)*m.w + i])
+		}
+		if m.w > 0 {
+			printf("%f]]\n\n", m.data[i32.add(i32.mul(m.l - 1, m.w), m.w - 1)])
+		}
+	}
+}
+
+func (m Matrix) shape () (out []i32) {
+	out = resize(out, 2)
+	out[0] = m.l
+	out[1] = m.w
+}
+
+func (a Matrix) dot (b Matrix) (out Matrix) {
+	if a.w != b.l {
+		CXMError(sprintf("dimension mismatch: %d != %d for matrices with dimension (%d, %d) and (%d, %d), respectively.", a.w, b.l, a.l, a.w, b.l, b.w))
+	}
+	var m []f32
+	m = resize(m, i32.mul(a.l, b.w))
+	var t f32
+	for i := 0; i < a.l; i++ {
+		for j := 0; j < b.w; j++ {
+			t = 0.0
+			for k := 0; k < a.w; k++ {
+				t = f32.add(t, f32.mul(a.data[i*a.l + k], b.data[k*b.w + j]))
+			}
+			m[i*b.w + j] = t
+		}
+	}
+	out = Matrix{ data: m, l: a.l, w: b.w }
+}
+
+func zeroMat (n i32) (out Matrix) {
+	var zr []f32
+	for i := 0; i < n*n; i++ {
+		zr = append(zr, 0.0)
+	}
+	out = Matrix{ data: zr, l: n, w: n }
+}
+
+func pivotizeMat (m Matrix) (out Matrix) {
+	if m.w != m.l {
+		CXMError("Matrix isn't square!")
+	}
+	var pv []i32
+	for i := 0; i < m.l; i++ {
+		pv = append(pv, i)
+	}
+	var dx i32
+	dx = 0
+	for j := 0; j < m.l; j++ {
+		row := j
+		var max f32
+		max = m.data[dx]
+		var ixcj i32
+		ixcj = dx
+		for i := j; i < m.l; i++ {
+			if m.data[ixcj] > max {
+				max = m.data[ixcj]
+				row = i
+			}
+			ixcj = ixcj + m.l
+		}
+		if j != row {
+			var tmp i32
+			tmp = pv[row]
+			pv[row] = pv[j]
+			pv[j] = tmp
+			for g := 0; g < len(pv); g++ {
+				printf("%d", pv[g])
+			}
+			printf("\n")
+		}
+		dx = i32.add(dx, m.l + 1)
+	}
+	var p Matrix
+	p = zeroMat(m.l)
+	var fuck []f32
+	fuck = p.data
+	var index i32
+	for i := 0; i < m.l; i++ {
+		index = i*m.l + pv[i]
+		fuck[index] = 1.0
+	}
+	p.print()
+	out = p
+}
+
+func parityUtil (m Matrix) (out f32) {
+	if m.w != m.l {
+		CXMError("Matrix isn't square!")
+	}
+	var parity i32 = 0
+	var pv []i32
+	pv = resize(pv, m.l)
+	for i := 0; i < len(pv); i++ {
+		pv[i] = i
+	}
+	var dx i32
+	dx = 0
+	for j := 0; j < m.l; j++ {
+		row := j
+		max := m.data[dx]
+		var ixcj i32
+		ixcj = dx
+		for i := j; i < m.l; i++ {
+			if m.data[ixcj] > max {
+				max = m.data[ixcj]
+				row = i
+			}
+			ixcj = ixcj + m.l
+		}
+		if j != row {
+			tmp := pv[row]
+			pv[row] = pv[j]
+			pv[j] = tmp
+			parity = parity + 1
+		}
+		dx = dx + m.l + 1
+	}
+	if i32.mod(parity, 2) == 0 {
+		out = 1.0
+	} else {
+		out = -1.0
+	}
+}
+
+
+func (m Matrix) lu () (out [3]Matrix) {
+	var l Matrix
+	var u Matrix
+	var p Matrix
+	var q f32
+	var a Matrix
+	l = zeroMat(m.l)
+	u = zeroMat(m.l)
+	p = pivotizeMat(m)
+	var ldata []f32
+	var udata []f32
+	ldata = l.data
+	udata = u.data
+	a = p.dot(m)
+	var jxco i32
+	jxco = 0
+	for j := 0; j < m.l; j++ {
+		ldata[jxco+j] = 1.0
+		var ixco i32
+		ixco = 0
+		for i := 0; ixco <= jxco; i++ {
+			var sum f32
+			sum = 0.0
+			var kxcj i32
+			kxcj = j
+			for k := 0; k < i; k++ {
+				sum = f32.add(sum, f32.mul(udata[kxcj], ldata[ixco+k]))
+				kxcj = i32.add(kxcj, m.l)
+			}
+			udata[ixco+j] = f32.sub(a.data[ixco+j], sum)
+			ixco = i32.add(ixco, m.l)
+		}
+		for ixco := jxco; ixco < len(a.data); ixco = i32.add(ixco, m.l) {
+			var sum f32
+			sum = 0.0
+			var kxcj i32
+			kxcj = j
+			for k := 0; k < j; k++ {
+				sum = f32.add(sum, f32.mul(udata[kxcj], ldata[ixco+k]))
+				kxcj = i32.add(kxcj, m.l)
+			}
+			ldata[ixco+j] = f32.div(f32.sub(a.data[ixco+j], sum), udata[jxco+j])
+		}
+		jxco = i32.add(jxco, m.l)
+	}
+	l.print()
+	u.print()
+	//p.print()
+	out[0] = l
+	out[1] = u
+	out[2] = p
+}
+
+func (m Matrix) det () (out f32) {
+	// det(P)xdet(A) = det(L)xdet(U).
+	var lup [3]Matrix
+	lup = m.lu()
+	var dl f32 = 1.0
+	var du f32 = 1.0
+	var dp f32 = parityUtil(m)
+	for i := 0; i < m.l; i++ {
+		du = f32.mul(du, lup[1].data[i*m.l + i])
+		dl = f32.mul(dl, lup[0].data[i*m.l + i])
+	}
+	out = f32.mul(dl, f32.mul(du, dp))
+}
+
+func main () {
+	var fl []f32 = []f32{ 11.0, 9.0, 24.0, 2.0, 1.0, 5.0, 2.0, 6.0, 3.0, 17.0, 18.0, 1.0, 2.0, 5.0, 7.0, 1.0 }
+	var lg i32 = 4
+	var wd i32 = 4
+	var mat Matrix 
+	mat = Matrix{ data: fl, l: lg, w: wd }
+	mat.print()
+	var det f32
+	det = mat.det()
+	printf("%f", det)
+}

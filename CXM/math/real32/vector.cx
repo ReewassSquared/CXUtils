@@ -1,0 +1,199 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide functions and utilities for bessel function and connected maths things.
+
+TYPES:
+	Vector:
+		data ([]f32)
+
+FUNCTIONS:
+	vector([]f32) - returns a Vector with data equal to the argument.
+	Vector.print() - prints the vector as follows: [v1, v2, ... ]
+	Vector.add(v) - adds vector v to the called vector.
+	Vector.sub(v) - subtracts vector v from the called vector.
+	Vector.mul(v) - multiplies each element of the called vector with each element of vector v.
+	Vector.dot(v) - returns the vector dot product of the called vector and vector v.
+	Vector.cross(v) - returns the cross product of the called vector and vector v.
+	Vector.length() - returns the length of the called vector.
+	Vector.norm() - normalizes the called vector.
+	Vector.inv() - converts each element in the vector to its multiplicative inverse.
+	Vector.clone() - returns a deep copy of the called vector.
+	Vector.angleFrom(v) - returns the angle (in radians) between the two vectors.
+
+LAST MODIFIED:
+	28 April 2019
+	
+NOTE: a commented-out main method has been left in for testing purposes. feel free to delete later.
+
+TODO:
+	move to real32
+*/
+package cxmr32vector
+import "cxmcore"
+import "cxmr32itrig"
+
+type Vector struct {
+	data []f32
+}
+
+func vector (in []f32) (out Vector) {
+	out = Vector{ data: in }
+}
+
+func (v Vector) print () {
+	printf("[")
+	for i := 0; i < len(v.data) - 1; i++ {
+		printf("%f, ", v.data[i])
+	}
+	if len(v.data) > 0 {
+		printf("%f]\n", v.data[len(v.data)-1])
+	}
+}
+
+func (v *Vector) add (a Vector) {
+	if len((*v).data) != len(a.data) {
+		CXMError("vectors are not of same dimension!")
+	} else {
+		for i := 0; i < len((*v).data); i++ {
+			(*v).data[i] = (*v).data[i] + a.data[i]
+		}
+	}
+}
+
+func (v *Vector) sub (a Vector) {
+	if len((*v).data) != len(a.data) {
+		CXMError("vectors are not of same dimension!")
+	} else {
+		for i := 0; i < len((*v).data); i++ {
+			(*v).data[i] = (*v).data[i] - a.data[i]
+		}
+	}
+}
+
+func (v *Vector) mul (a Vector) {
+	if len((*v).data) != len(a.data) {
+		CXMError("vectors are not of same dimension!")
+	} else {
+		for i := 0; i < len((*v).data); i++ {
+			(*v).data[i] = (*v).data[i] * a.data[i]
+		}
+	}
+}
+
+func (v Vector) dot (a Vector) (out f32) {
+	var kappa f32
+	kappa = 0.0
+	if len(v.data) != len(a.data) {
+		CXMError("vectors are not of same dimension!")
+	} else {
+		for i := 0; i < len(v.data); i++ {
+			kappa = f32.add(kappa, v.data[i] * a.data[i])
+		}
+	}
+	out = kappa
+}
+
+func (v Vector) cross (a Vector) (out Vector) {
+	if len(v.data) != len(a.data) {
+		CXMError("vectors are not of same dimension!")
+	} else if len(v.data) != 3 {
+		CXMError("cross product on vector of improper dimension!")
+	} else {
+		var s []f32
+		s = []f32{0.0, 0.0, 0.0}
+		s[0] = v.data[1] * a.data[2] - v.data[2] * a.data[1]
+		s[1] = v.data[2] * a.data[0] - v.data[0] * a.data[2]
+		s[2] = v.data[0] * a.data[1] - v.data[1] * a.data[0]
+		out = Vector{ data: s }
+	}
+}
+
+func (v Vector) length () (out f32) {
+	var kappa f32
+	kappa = 0.0
+	for i := 0; i < len(v.data); i++ {
+		kappa = f32.add(kappa, v.data[i]*v.data[i])
+	}
+	out = f32.sqrt(kappa)
+}
+
+func (v *Vector) norm () {
+	var l f32
+	l = (*v).length()
+	for i := 0; i < len(v.data); i++ {
+		(*v).data[i] = f32.div((*v).data[i], l)
+	}
+}
+
+func (v *Vector) inv () {
+	for i := 0; i < len(v.data); i++ {
+		(*v).data[i] = f32.div(1.0, (*v).data[i])
+	}
+}
+
+func (v Vector) clone () (out Vector) {
+	var s []f32
+	//FUTURE: USE THIS; DOESN'T WORK RN THO.
+	//s = make("[]f32", len(v.data))
+	//copy(v.data, s)
+	for i := 0; i < len(v.data); i++ {
+		s = append(s, v.data[i])
+	}
+	out = Vector{ data: s }
+}
+
+func (v Vector) angleFrom (a Vector) (out f32) {
+	var lV f32
+	var lA f32
+	var dot f32
+	var costheta f32
+	lV = v.length()
+	f32.print(lV)
+	lA = a.length()
+	f32.print(lA)
+	dot = v.dot(a)
+	f32.print(dot)
+	costheta = f32.div(dot, lV * lA)
+	f32.print(costheta)
+	out = acos(costheta)
+}
+
+//func main () {
+	//var v1 Vector
+	//var v2 Vector
+	//var s1 []f32
+	//var s2 []f32
+	//s1 = []f32{1.0, 0.0, 0.0}
+	//s2 = []f32{1.0, 0.001, 0.0}
+	//v1 =  Vector { data : s1 }
+	//v2 =  Vector { data : s2 }
+
+	//v1.print()
+	//v2.print()
+	//v1.add(v2)
+	//v1.print()
+	//var v3 Vector
+	//v3 = v1.cross(v2)
+	//v3.print()
+	//a := v3.length()
+	//f32.print(a)
+	//var v4 Vector
+	//v4 = v3.clone()
+	//v4.print()
+	//v4.norm()
+	//v4.print()
+	//v4.inv()
+	//v4.print()
+	//z := v1.angleFrom(v2)
+	//f32.print(z)
+
+	//var A f32
+	//var B f32
+	//A = 0.5
+	//B = atan(A)
+	//f32.print(B)
+//}

@@ -1,0 +1,717 @@
+/*
+Created July 21, 2019
+Geoffrey Kublin
+*/
+
+package main
+
+func CXMError(in str) {
+	printf("error: %s\n", in)
+	//exit  program here
+}
+
+type Matrix struct {
+	l i32
+	w i32
+	data []f32
+}
+
+func matrix (in []f32, length i32, width i32) (out Matrix) {
+	out = Matrix{ data: in, l: length, w: width }
+}
+
+func matrixOnes (lg i32, wd i32) (out Matrix) {
+	var dat []f32
+	for i := 0; i < i32.mul(lg, wd); i++ {
+		dat = append(dat, 1.0)
+	}
+	out = Matrix{ data: dat, l: lg, w: wd }
+}
+
+func (m Matrix) print () {
+	printf("[")
+	for j := 0; j < m.l - 1; j++ {
+		printf("[")
+		for i := 0; i < m.w - 1; i++ {
+			printf("%f, ", m.data[j*m.w + i])
+		}
+		if m.w > 0 {
+			printf("%f],\n", m.data[j*m.w + m.w-1])
+		}
+	}
+	if m.l > 0 {
+		printf("[")
+		for i := 0; i < m.w - 1; i++ {
+			printf("%f, ", m.data[(m.l - 1)*m.w + i])
+		}
+		if m.w > 0 {
+			printf("%f]]\n\n", m.data[i32.add(i32.mul(m.l - 1, m.w), m.w - 1)])
+		}
+	}
+}
+
+func (m Matrix) shape () (out []i32) {
+	out = resize(out, 2)
+	out[0] = m.l
+	out[1] = m.w
+}
+
+func (m Matrix) clone () (out Matrix) {
+	var cdata []f32
+	cdata = resize(cdata, m.l*m.w)
+	for i := 0; i < m.l*m.w; i++ {
+		cdata[i] = m.data[i]
+	}
+	out = Matrix{ data: cdata, l: m.l, w: m.w }
+}
+
+func (a Matrix) dot (b Matrix) (out Matrix) {
+	if a.w != b.l {
+		CXMError(sprintf("dimension mismatch: %d != %d for matrices with dimension (%d, %d) and (%d, %d), respectively.", a.w, b.l, a.l, a.w, b.l, b.w))
+	}
+	//printf("(%d, %d) x (%d, %d)\n", a.l, a.w, b.l, b.w)
+	var m []f32
+	m = resize(m, i32.mul(a.l, b.w))
+	var t f32
+	var m3x i32
+	m3x = 0
+	var m1c0 i32
+	var m2r0 i32
+	var m1x i32
+	var m2x i32
+	var t0 f32
+	var t1 f32
+	for m1c0 = 0; m1c0 < a.l*a.w; m1c0 = i32.add(m1c0, a.w) {
+		for m2r0 = 0; m2r0 < b.w; m2r0++ {
+			t = 0.0
+			m1x = m1c0
+			for m2x = 0; m2x < b.l*b.w; m2x = i32.add(m2x, b.w) {
+				t0 = a.data[m1x]
+				t1 = b.data[m2x]
+				t = f32.add(t, f32.mul(t0, t1))
+				m1x = i32.add(m1x, 1)
+			}
+			m[m3x] = t
+			m3x = i32.add(m3x, 1)
+		}
+	}
+	out = Matrix{ data: m, l: a.l, w: b.w }
+}
+
+func (m *Matrix) swapRows (rsrc i32, rdst i32) {
+	var ll i32 = (*m).l
+	var ww i32 = (*m).w
+	if rsrc == rdst || rsrc < 0 || rdst < 0 || rsrc >= ll || rdst >= ww {
+		return
+	}
+	var tmp f32
+	var prxy []f32
+	prxy = (*m).data
+	for i := 0; i < ww; i++ {
+		var sr i32 = rsrc*ww + i
+		var ds i32 = rdst*ww + i
+		tmp = prxy[sr]
+		prxy[sr] = prxy[ds]
+		prxy[ds] = tmp
+	}
+	(*m).data = prxy
+}
+
+func (m Matrix) matPos(r i32, c i32) (out i32) {
+	out = r*m.w + c
+}
+
+func (m *Matrix) normRow(r i32, divv f32) {
+	var ll i32 = (*m).l
+	var ww i32 = (*m).w
+	if ll <= r {
+		return
+	}
+	var DATA []f32 = (*m).data
+	if bool.not(f32.eq(divv, 0.0)) {
+		for j := 0; j < ww; j++ {
+			DATA[r*ww + j] = f32.div(DATA[r*ww + j], divv)
+		}
+	}
+}
+
+//UTILITY
+func (m *Matrix) linearReduction (r i32, j i32, p f32) {
+	var ll i32 = (*m).l
+	var ww i32 = (*m).w
+	var prxy []f32
+	prxy = (*m).data
+	for k := 0; k < ww; k++ {
+		prxy[j*ww + k] = prxy[j*ww + k] - p*prxy[r*ww + k]
+	}
+	(*m).data = prxy
+}
+
+func (m *Matrix) smul (in f32) {
+	var prxy []f32
+	prxy = (*m).data
+	for i := 0; i < len(prxy); i++ {
+		prxy[i] = f32.mul(in, prxy[i])
+	}
+	(*m).data = prxy
+}
+
+func (m *Matrix) mul (a Matrix) {
+	var prxy []f32
+	prxy = (*m).data
+	for i := 0; i < len(prxy); i++ {
+		prxy[i] = f32.mul(a.data[i], prxy[i])
+	}
+	(*m).data = prxy
+}
+
+func (m *Matrix) add (a Matrix) {
+	var prxy []f32
+	prxy = (*m).data
+	for i := 0; i < len(prxy); i++ {
+		prxy[i] = f32.add(a.data[i], prxy[i])
+	}
+	(*m).data = prxy
+}
+
+func zeroMat (n i32) (out Matrix) {
+	var zr []f32
+	for i := 0; i < n*n; i++ {
+		zr = append(zr, 0.0)
+	}
+	out = Matrix{ data: zr, l: n, w: n }
+}
+
+func idMat (n i32) (out Matrix) {
+	out = zeroMat(n)
+	var fl []f32
+	fl = out.data
+	for i := 0; i < n; i++ {
+		fl[n*i + i] = 1.0
+	}
+}
+
+func (m Matrix) pivot () (out Matrix) {
+	if m.w != m.l {
+		CXMError("Matrix isn't square!")
+	}
+	var pv []i32
+	for i := 0; i < m.l; i++ {
+		pv = append(pv, i)
+	}
+	var dx i32
+	dx = 0
+	for j := 0; j < m.l; j++ {
+		row := j
+		var max f32
+		max = m.data[dx]
+		var ixcj i32
+		ixcj = dx
+		for i := j; i < m.l; i++ {
+			if m.data[ixcj] > max {
+				max = m.data[ixcj]
+				row = i
+			}
+			ixcj = ixcj + m.l
+		}
+		if j != row {
+			var tmp i32
+			tmp = pv[row]
+			pv[row] = pv[j]
+			pv[j] = tmp
+		}
+		dx = i32.add(dx, m.l + 1)
+	}
+	var p Matrix
+	p = zeroMat(m.l)
+	var fuck []f32
+	fuck = p.data
+	var index i32
+	for i := 0; i < m.l; i++ {
+		index = i*m.l + pv[i]
+		fuck[index] = 1.0
+	}
+	out = p
+}
+
+func (m Matrix) parityUtil () (out f32) {
+	if m.w != m.l {
+		CXMError("Matrix isn't square!")
+	}
+	var parity i32 = 0
+	var pv []i32
+	pv = resize(pv, m.l)
+	for i := 0; i < len(pv); i++ {
+		pv[i] = i
+	}
+	var dx i32
+	dx = 0
+	for j := 0; j < m.l; j++ {
+		row := j
+		max := m.data[dx]
+		var ixcj i32
+		ixcj = dx
+		for i := j; i < m.l; i++ {
+			if m.data[ixcj] > max {
+				max = m.data[ixcj]
+				row = i
+			}
+			ixcj = ixcj + m.l
+		}
+		if j != row {
+			tmp := pv[row]
+			pv[row] = pv[j]
+			pv[j] = tmp
+			parity = parity + 1
+		}
+		dx = dx + m.l + 1
+	}
+	if i32.mod(parity, 2) == 0 {
+		out = 1.0
+	} else {
+		out = -1.0
+	}
+}
+
+
+func (m Matrix) lu () (out [3]Matrix) {
+	var l Matrix
+	var u Matrix
+	var p Matrix
+	var q f32
+	var a Matrix
+	l = zeroMat(m.l)
+	u = zeroMat(m.l)
+	p = m.pivot()
+	var ldata []f32
+	var udata []f32
+	ldata = l.data
+	udata = u.data
+	a = p.dot(m)
+	var jxco i32
+	jxco = 0
+	for j := 0; j < m.l; j++ {
+		ldata[jxco+j] = 1.0
+		var ixco i32
+		ixco = 0
+		for i := 0; ixco <= jxco; i++ {
+			var sum f32
+			sum = 0.0
+			var kxcj i32
+			kxcj = j
+			for k := 0; k < i; k++ {
+				sum = f32.add(sum, f32.mul(udata[kxcj], ldata[ixco+k]))
+				kxcj = i32.add(kxcj, m.l)
+			}
+			udata[ixco+j] = f32.sub(a.data[ixco+j], sum)
+			ixco = i32.add(ixco, m.l)
+		}
+		for ixco := jxco; ixco < len(a.data); ixco = i32.add(ixco, m.l) {
+			var sum f32
+			sum = 0.0
+			var kxcj i32
+			kxcj = j
+			for k := 0; k < j; k++ {
+				sum = f32.add(sum, f32.mul(udata[kxcj], ldata[ixco+k]))
+				kxcj = i32.add(kxcj, m.l)
+			}
+			ldata[ixco+j] = f32.div(f32.sub(a.data[ixco+j], sum), udata[jxco+j])
+		}
+		jxco = i32.add(jxco, m.l)
+	}
+	out[0] = l
+	out[1] = u
+	out[2] = p
+}
+
+func (m *Matrix) rref () {
+	var i i32
+	lead := 0
+	rowCount := (*m).l
+	columnCount := (*m).w
+	var DATA []f32
+	DATA = (*m).data
+	for r := 0; r < rowCount; r++ {
+		if columnCount <= lead {
+			return
+		}
+		i = r
+		for f32.eq(DATA[columnCount*i + lead], 0.0) {
+			i = i + 1
+			if rowCount == i {
+				i = r
+				lead = lead + 1
+				if columnCount == lead {
+					return
+				}
+			}
+		}
+		(*m).swapRows(i, r)
+		(*m).normRow(r, DATA[r*columnCount + lead])
+		for k := 0; k < rowCount; k++ {
+			if k != r {
+				(*m).linearReduction(r, k, DATA[k*columnCount + lead])
+			}
+		}
+		lead = i32.add(lead, 1)
+	}
+}
+
+func (m Matrix) det () (out f32) {
+	var lup [3]Matrix
+	lup = m.lu()
+	var dl f32 = 1.0
+	var du f32 = 1.0
+	var dp f32 
+	dp = m.parityUtil()
+	for i := 0; i < m.l; i++ {
+		du = f32.mul(du, lup[1].data[i*m.l + i])
+		dl = f32.mul(dl, lup[0].data[i*m.l + i])
+	}
+	out = f32.mul(dl, f32.mul(du, dp))
+}
+
+func (m Matrix) inv () (out Matrix) {
+	if m.l != m.w {
+		CXMError("Matrix not square!")
+	}
+	//glue identity matrix to right
+	var aug []f32
+	var identity Matrix
+	identity = idMat(m.l)
+	for r := 0; r < m.l; r++ {
+		for c := 0; c < 2*m.w; c++ {
+			if c >= m.w {
+				aug = append(aug, identity.data[r*m.w + c - m.w])
+			} else {
+				aug = append(aug, m.data[r*m.w +c])
+			}
+		}
+	}
+	var calc Matrix
+	calc = Matrix{ data: aug, l: m.l, w: 2*m.w }
+	calc.print()
+	calc.rref()
+	var fin []f32
+	//unglue identity matrix from left
+	for r := 0; r < m.l; r++ {
+		for c := m.w; c < 2*m.w; c++ {
+			fin = append(fin, calc.data[r*calc.w + c])
+		}
+	}
+	out = Matrix{ data: fin, l: m.l, w: m.w }
+}
+
+func (m Matrix) getRow (ridx i32) (out []f32) {
+	if m.l <= ridx || ridx < 0 {
+		CXMError("cannot get row out of bounds!")
+	}
+	for i := 0; i < m.w; i++ {
+		out = append(out, m.data[m.w*ridx + i])
+	}
+}
+
+
+func (m Matrix) getColumn (cidx i32) (out []f32) {
+	if m.w <= cidx || cidx < 0 {
+		CXMError("cannot get column out of bounds!")
+	}
+	for i := 0; i < m.l; i++ {
+		out = append(out, m.data[m.l*i + cidx])
+	}
+}
+
+func (m Matrix) getElement (r i32, c i32) (out f32) {
+	if r < 0 || c < 0 || r >= m.l || c >= m.w {
+		CXMError("cannot get element out of bounds!")
+	}
+	out = m.data[r*m.w + c]
+}
+
+var MT [624]i64
+var index i64
+
+type Random struct {
+	seed i64
+}
+
+func (r Random) initgen () {
+	i := 0
+	MT[0] = r.seed
+	for i = 1; i < 624; i++ {
+		MT[i] = i64.bitand(i64.add(i64.mul(1812433253L, i64.bitxor(MT[i-1], i64.bitshr(MT[i-1], 30L))), i32.i64(i)), 4294967295L)
+	}
+}
+
+func random (s i64) (out Random) {
+	out = Random{ seed: s }
+	out.initgen()
+	index = 0L
+}
+
+func (r Random) genNumbers () {
+	for i := 0; i < 623; i++ {
+		var y i64
+		y = i64.add(i64.bitand(MT[i], 2147483648L), i64.bitand(MT[i32.mod(i + 1, 624)], 2147483647L))
+		MT[i] = i64.bitxor(MT[i32.mod(i + 397, 624)], i64.bitshr(y, 1L))
+		if i64.mod(y, 2L) == 0L {
+			MT[i] = i64.bitxor(MT[i], 2567483615L)
+		}
+	}
+}
+
+func (r Random) extractRandom () (out i64) {
+	if index == 0L {
+		r.genNumbers()
+	}
+	var y i64
+	y = MT[index]
+	y = i64.bitxor(y, i64.bitshr(y, 11L))
+	y = i64.bitxor(y, i64.bitand(i64.bitshl(y, 7L), 2636928640L))
+	y = i64.bitxor(y, i64.bitand(i64.bitshl(y, 15L), 4022730752L))
+	y = i64.bitxor(y, i64.bitshr(y, 18L))
+	index = i64.mod(index + 1L, 624L)
+	out = y
+}
+
+func (r Random) drand () (out f64) {
+	var special i64
+	special = r.extractRandom()
+	out = f64.div(i64.f64(special), 4294967295.0D)
+}
+
+func (r Random) frand () (out f32) {
+	var special i64
+	special = r.extractRandom()
+	out = f32.div(i64.f32(special), 4294967295.0)
+}
+
+func (r Random) irand () (out i32) {
+	var special i64
+	special = r.extractRandom()
+	out = i64.i32(special)
+}
+
+func (r Random) lrand () (out i64) {
+	var special i64
+	special = r.extractRandom()
+	out = r.extractRandom()
+	out = i64.bitor(i64.bitshl(special, 32L), out)
+}
+
+func sigmoid (in []f32) (out []f32) {
+	out = in
+	for i := 0; i < len(in); i++ {
+		var pr f32
+		pr = exp(f32.mul(-1.0, out[i]))
+		out[i] = f32.div(1.0, f32.add(1.0, pr))
+	}
+}
+
+func activation(in []f32) (out []f32) {
+	out = in
+	for i := 0; i < len(in); i++ {
+		var pr f32
+		pr = exp(f32.mul(-1.0, out[i]))
+		pr = f32.div(1.0, f32.add(1.0, pr))
+		out[i] = pr
+	}
+}
+
+func (m *Matrix) act () {
+	var proxy []f32
+	proxy = (*m).data
+	proxy = activation(proxy)
+	(*m).data = proxy
+}
+
+func (m *Matrix) bact () {
+	var proxy []f32
+	proxy = (*m).data
+	var foo f32
+	for i := 0; i < len(proxy); i++ {
+		foo = f32.mul(proxy[i], f32.sub(1.0, proxy[i]))
+		proxy[i] = foo
+	}
+}
+
+func exp (x f32) (out f32) {
+	out = f32.pow(2.71828182845904523536, x) 
+}
+
+func sinxox (in f32) (out f32) {
+	var g f32
+	g = f32.sin(in)
+	out = f32.div(g, in)
+}
+
+func (m Matrix) transpose () (out Matrix) {
+	if m.l == 1 {
+		out = Matrix{ data: m.data, l: m.w, w: m.l }
+		return
+	} else if m.w == 1 {
+		out = Matrix{ data: m.data, l: m.w, w: m.l }
+		return
+	}
+	var trp []f32
+	var fffff i32
+	fffff = len(m.data)
+	trp = resize(trp, fffff)
+	var rx i32 
+	rx = 0
+	for i := 0; i < fffff; i++ {
+		trp[rx] = m.data[i] //beep boop, crashes it sometimes
+		rx = i32.add(rx, m.w)
+		if i32.gteq(rx, fffff) {
+			rx = i32.sub(rx, i32.sub(fffff, 1))
+		}
+	}
+	out = Matrix{ data: trp, l: m.w, w: m.l }
+}
+
+func randomweights (rand Random, shape [2]i32) (out Matrix) {
+	var wt []f32
+	var g f32
+	wt = resize(wt, i32.mul(shape[0], shape[1]))
+	for i := 0; i < len(wt); i++ {
+		g = rand.frand()
+		wt[i] = f32.sub(f32.mul(2.0, g), 1.0)
+	}
+	out = Matrix{ data: wt, l: shape[0], w: shape[1] } 
+}
+
+func mse (targets Matrix, values Matrix) (out Matrix) {
+	var s []f32
+	s = resize(s, targets.l * targets.w)
+	for i := 0; i < len(s); i++ {
+		s[i] = f32.sub(targets.data[i], values.data[i])
+		s[i] = f32.mul(s[i], s[i])
+	}
+
+	out = Matrix{ data: s, l: targets.l, w: targets.w }
+}
+
+func main () {
+	var weights []Matrix
+	var inputt Matrix
+	var inp []f32
+	var target Matrix
+	var tar []f32
+	var lres []Matrix
+	var dlres Matrix
+	var special Matrix
+	var error Matrix
+	var lr f32
+	var epochs i32
+
+
+	/*
+	Amaury: you can change the learning rate (lr) to whatever you like
+	epochs determines the number of iterations the program will train.
+	currently, the network is training to fit f = sin(x)/x for x in range (0, 3.14]
+	if you want you can change this
+	you can also change the seed for the random number generator below (rand = random(200L) <-- 200L can be any i64 seed)
+	you can change epochs to be whatever, the larger it is the more garbage is produced
+	if you can get beyong 100K epochs and the GC can keep up that would be great success
+
+	good luck 
+
+	-Geoffrey Kublin
+	*/
+	epochs = 1000
+	lr = 0.01 
+
+	inp = resize(inp, 1)
+	tar = resize(tar, 1)
+
+	var rand Random
+
+	rand = random(200L)
+
+
+	/*
+	Amaury: you can increase the network size here to test new GC.
+	netshape determines the shape of the neural network.
+	first element is size of input (leave as 1 for now), last element is size of output (also leave as 1 for now)
+	all other elements are the size of the hidden layers. Feel free to test adding more or less.
+	*/
+	var netshape []i32 = []i32{ 1, 50, 1 }
+
+	//initialize network weights
+	for i := 1; i < len(netshape); i++ {
+		var m Matrix
+		var l [2]i32 = [2]i32{ netshape[i], netshape[i-1] }
+		m = randomweights(rand, l)
+		weights = append(weights, m)
+	}
+		//train
+	for i := 0; i < epochs; i++ {
+		//get input matrix
+		inp[0] = rand.frand()
+		inp[0] = f32.add(f32.mul(inp[0], 3.14), 0.0)
+		inputt = Matrix{ data: inp, l: 1, w: 1 }
+		inputt = inputt.transpose()
+
+		tar[0] = sinxox(inp[0])
+		target = Matrix{ data: tar, l: 1, w: 1 }
+
+		lres = append(lres, inputt)
+
+		for j := 0; j < len(weights); j++ {
+			var trans Matrix
+			var wgt Matrix
+			trans = lres[j]
+
+			//multiply by weight
+			wgt = weights[j]
+			trans = wgt.dot(trans)
+			trans.act()
+
+			//add to lres
+			lres = append(lres, trans)
+		}
+
+		//calculate loss
+		target = target.transpose()
+		error = mse(target, lres[len(lres) - 1])
+		special = lres[len(lres) - 1]
+
+		printf("[%d] loss: %f, target: %f, actual: %f\n", i, error.data[0], target.data[0], special.data[0])
+
+		//begin backprop for gradient calculation
+		for j := i32.sub(len(lres), 1); j > 0; j-- {
+			//calculate gradients
+			special = lres[j]
+			dlres = special.clone()
+			dlres.bact()
+			dlres.mul(error)
+
+			var trns Matrix
+			trns = lres[j - 1]
+			trns = trns.transpose()
+			dlres = dlres.dot(trns)
+			dlres.smul(lr)
+
+			//dlres.print()
+
+			//calculate next error
+			var wtmp Matrix
+			wtmp = weights[j - 1]
+			wtmp = wtmp.transpose()
+			error = wtmp.dot(error)
+
+			//update weights
+			special = weights[j - 1]
+			special.add(dlres)
+			weights[j - 1] = special
+		}
+
+		lres = resize(lres, 0)
+	}
+
+	for i := 0; i < len(weights); i++ {
+		printf("\nfinal weights for matrix %d\n", i32.add(i, 1))
+		weights[i].print()
+		printf("\n")
+	}
+}

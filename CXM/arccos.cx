@@ -1,0 +1,67 @@
+package cxm
+
+var pi f32
+pi = 3.1415927
+
+func acos (a f32) (out f32) {
+	var delta f32
+	var x f32
+	var l f32
+	delta = 0.00001
+	
+	x = f32.div(f32.mult(pi, 1.0 - a), 2.0)
+	l = x
+	x = f32.add(x, f32.div(f32.cos(x) - a, f32.sin(x)))
+	for ; f32.abs(x - l) > delta; {
+		l = x
+		x = f32.add(x, f32.div(f32.cos(x) - a, f32.sin(x)))
+	}
+	out = x
+}
+
+func fma (a f32, b f32, c f32) (out f32) {
+	out = f32.add(a, f32.mul(b, c))
+}
+
+func atan (x f32) (out f32) {
+	var x f32
+	var a f32
+	var z f32
+	var p f32
+	var pp f32
+	var r f32
+	var s f32
+	var q f32
+	var o f32
+	var ret f32
+
+	z = f32.abs(x)
+	if z > 1.0 {
+		a = f32.div(1.0, z)
+	} else {
+		a = z
+	}
+	
+	s = f32.mul(a, a)
+	q = f32.mul(s, s)
+	o = f32.mul(q, q)
+	p = fma(fma(fma(-0.000020, s, 0.000223), q, fma(-0.001164, s, 0.003856)), o, fma(fma(-0.009185, s, 0.016978), q, fma(-0.025827, s, 0.034068)))
+	pp = fma(fma(fma(fma(fma(fma(fma(fma(fma(fma(fma(fma(p, s, -0.040926), s, 0.046739), s, -0.052392), s, 0.058773), s, -0.066659), s, 0.076922), s, -0.090909), s, 0.111111), s, -0.142857), s, 0.200000), s, -0.333333) * s, a, a)
+	if z > 1.0 {
+		r = 1.570796 - pp
+	} else {
+		r = pp
+	}
+
+	if x < 0 {
+		ret = f32.mul(-1.0, r) 
+	} else {
+		ret = r
+	}
+	out = ret
+}
+
+
+
+
+

@@ -1,0 +1,16 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide the exponential function
+
+LAST MODIFIED:
+	26 April 2019
+*/
+package cxmr32exp
+
+func exp (x f32) (out f32) {
+	out = f32.pow(2.71828182845904523536, x) 
+}

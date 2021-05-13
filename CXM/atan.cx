@@ -1,0 +1,70 @@
+package cxm
+
+func atan2 (x f32, y f32) (out f32) {
+	var t0 f32
+	var t1 f32
+	var t2 f32
+	var t3 f32
+	var t4 f32
+	t3 = f32.abs(x)
+	t1 = f32.abs(y)
+	t0 = f32.max(t3, t1)
+	t1 = f32.min(t3, t1)
+	t3 = f32.div(1.0, t0)
+	t3 = f32.mul(t1, t3)
+
+	t4 = f32.mul(t3, t3)
+	t0 = -0.013480470
+	t0 = f32.add(f32.mul(t0, t4), 0.057477314)
+	t0 = f32.sub(f32.mul(t0, t4), 0.121239071)
+	t0 = f32.add(f32.mul(t0, t4), 0.195635925)
+	t0 = f32.sub(f32.mul(t0, t4), 0.332994597)
+	t0 = f32.add(f32.mul(t0, t4), 0.999995630)
+	t3 = f32.mul(t0, t3)
+
+	if f32.abs(y) > f32.abs(x) {
+		t3 = f32.sub(1.570796327, t3)
+	} 
+	if x < 0.0 {
+		t3 = f32.sub(3.141592654, t3)
+	}
+	if y < 0.0 {
+		t3 = f32.mul(-1.0, t3)
+	}
+	out = t3
+}
+
+func atan (x f32) (out f32) {
+	out = atan2(1.0, x)
+}
+
+func asin (x f32) (out f32) {
+	if f32.abs(x) > 0.999999 {
+		CXMError(sprintf("asin takes values between -1 and 1. given value: %f.", x))
+	}
+	var negate f32
+	var ret f32
+	if x < 0.0 {
+		negate = 1.0
+	} else {
+		negate = 0.0
+	}
+	x = f32.abs(x)
+	ret = -0.0187293
+	ret = f32.mul(ret, x)
+	ret = f32.add(ret, 0.0742610)
+	ret = f32.mul(ret, x)
+	ret = f32.sub(ret, 0.2121144)
+	ret = f32.mul(ret, x)
+	ret = f32.add(ret, 1.5707288)
+	ret = f32.sub(f64.f32(f64.mul(3.14159265358979D, 0.5D)), f32.mul(f32.sqrt(f32.sub(1.0, x)), ret))
+	out = f32.sub(ret, f32.mul(2.0, f32.mul(negate, ret))) 
+}
+
+//func main () {
+//	var A f32
+//	var B f32
+//	A = 0.5
+//	B = atan(A)
+//	f32.print(B)
+//}

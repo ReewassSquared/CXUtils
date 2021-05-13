@@ -1,0 +1,128 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide error function and utilities
+
+FUNCTIONS:
+	erf(x) - returns error function of x
+	erfc(x) - returns complimentary error function of x
+	cbserfR1(x) - polynomial approximation helper function 1
+	cbserfR2(x) - polynomial approximation helper function 2
+	cbserfR3(x) - polynomial approximation helper function 3
+
+LAST MODIFIED:
+	26 April 2019
+
+NOTES:
+	yes, uses wrapper utility to scale down f64 version... saves code duplication. Also this is already pretty fast.
+*/
+package cxmr32erf
+
+func erf (xx f32) (outt f32) {
+	var x f32 = f64.f32(xx)
+	var state f64
+	state = x
+	if state < 0.0D {
+		x = f64.mul(-1.0D, x)
+	}
+	
+	if x < 0.5D {
+		out = f64.mul(x, cbserfR1(f64.mul(x, x)))
+	} else {
+		var enx2 f64
+		enx2 = exp(f64.mul(-1.0D, f64.mul(x, x)))
+		if x < 4.0D {
+			out = f64.sub(1.0D, f64.mul(enx2, cbserfR2(x)))
+		} else {
+			var onex2 f64
+			onex2 = f64.div(1.0D, f64.mul(x, x))
+			out = f64.sub(1.0D, f64.mul(f64.div(enx2, x), f64.add(0.564189583547756286948D, f64.mul(onex2, cbserfR3(onex2)))))
+		}
+	}
+	if state < 0.0D {
+		out = f64.mul(-1.0D, out)
+	}
+	outt = f64.f32(out)
+}
+
+func erfc (x f32) (out f32) {
+	out = f32.sub(1.0, erf(x))
+}
+
+
+func cbserfR3 (x f64) (out f64) {
+	var num f64
+	var den f64
+	x2 := f64.mul(x, x)
+	x4 := f64.mul(x2, x2)
+	x5 := f64.mul(x, x4)
+	x3 := f64.mul(x, x2)
+
+	num = -0.000658749161529837803157D
+	num = f64.add(num, f64.mul(-0.0163153871373020978498D, x5))
+	num = f64.add(num, f64.mul(-0.305326634961232344035D, x4))
+	num = f64.add(num, f64.mul(-0.360344899949804439429D, x3))
+	num = f64.add(num, f64.mul(-0.125781726111229246204D, x2))
+	num = f64.add(num, f64.mul(-0.0160837851487422766278D, x))
+
+	den = 0.00233520497626869185443D
+	den = f64.mul(den, x5)
+	den = f64.add(den, f64.mul(2.56852019228982242072D, x4))
+	den = f64.add(den, f64.mul(1.87295284992346047209D, x3))
+	den = f64.add(den, f64.mul(0.527905102951428412248D, x2))
+	den = f64.add(den, f64.mul(0.0605183413124413191178D, x))
+	out = f64.div(num, den)
+}
+
+func cbserfR2 (x f64) (out f64) {
+	var num f64
+	var den f64
+	x2 := f64.mul(x, x)
+	x4 := f64.mul(x2, x2)
+	x3 := f64.mul(x, x2)
+	x8 := f64.mul(x4, x4)
+	x6 := f64.mul(x2, x4)
+	x5 := f64.mul(x, x4)
+	x7 := f64.mul(x3, x4)
+	num = 1230.33935479799725272D
+	num = f64.add(num, f64.mul(0.0000000215311535474403846343D, x8))
+	num = f64.add(num, f64.mul(0.564188496988670089180D, x7))
+	num = f64.add(num, f64.mul(8.88314979438837594118D, x6))
+	num = f64.add(num, f64.mul(66.1191906371416294775D, x5))
+	num = f64.add(num, f64.mul(298.635138197400131132D, x4))
+	num = f64.add(num, f64.mul(881.952221241769090411D, x3))
+	num = f64.add(num, f64.mul(1712.04761263407058314D, x2))
+	num = f64.add(num, f64.mul(2051.07837782607146532D, x))
+	den = 1230.33935480374942043D
+	den = f64.add(den, x8)
+	den = f64.add(den, f64.mul(15.7449261107098347253D, x7))
+	den = f64.add(den, f64.mul(117.693950891312499305D, x6))
+	den = f64.add(den, f64.mul(537.181101862009857509D, x5))
+	den = f64.add(den, f64.mul(1621.38957456669018874D, x4))
+	den = f64.add(den, f64.mul(3290.79923573345962678D, x3))
+	den = f64.add(den, f64.mul(4362.61909014324715820D, x2))
+	den = f64.add(den, f64.mul(3439.36767414372163696D, x))
+	out = f64.div(num, den)
+}
+
+func cbserfR1 (x f64) (out f64) {
+	var num f64
+	var den f64
+	x2 := f64.mul(x, x)
+	x4 := f64.mul(x2, x2)
+	x3 := f64.mul(x, x2)
+	num = 3209.377589138469472562D
+	num = f64.add(num, f64.mul(377.4852376853020208137D, x))
+	num = f64.add(num, f64.mul(113.8641541510501556495D, x2))
+	num = f64.add(num, f64.mul(3.161123743870565596947D, x3))
+	num = f64.add(num, f64.mul(0.185777706184603152673D, x4))
+	den = 2844.236833439170622273D
+	den = f64.add(den, f64.mul(1282.616526077372275645D, x))
+	den = f64.add(den, f64.mul(244.0246379344441733056D, x2))
+	den = f64.add(den, f64.mul(23.60129095234412093499D, x3))
+	den = f64.add(den, x4)
+	out = f64.div(num, den)
+}

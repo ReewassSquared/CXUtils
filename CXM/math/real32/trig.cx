@@ -1,0 +1,58 @@
+/*
+2019 Brandon Koerner
+https://github.com/ReewassSquared/
+Licensed under the Apache License 2.0
+
+PURPOSE: 
+	Provide trigonometric functions and utilities
+
+FUNCTIONS:
+	sin(x) - returns sine of x
+	cos(x) - returns cosine of x
+	tan(x) - returns tangent of x
+	sec(x) - returns secant of x
+	csc(x) - returns cosecant of x
+	cot(x) - returns cotangent of x
+	hypot(a, b) - returns sqrt(a^2 + b^2)
+	pythag([]c) - returns magnitude of vector c
+
+LAST MODIFIED:
+	26 April 2019
+*/
+package cxmr32trig
+
+func sin (x f32) (out f32) {
+	out = f32.sin(x)
+}
+
+func cos (x f32) (out f32) {
+	out = f32.cos(x)
+}
+
+func sec (x f32) (out f32) {
+	out = f32.div(1.0, f32.cos(x))
+}
+
+func csc (x f32) (out f32) {
+	out = f32.div(1.0, f32.sin(x))
+}
+
+func tan (x f32) (out f32) {
+	out = f32.div(f32.sin(x), f32.cos(x))
+}
+
+func cot (x f32) (out f32) {
+	out = f32.div(f32.cos(x), f32.sin(x))
+}
+
+func hypot(a f32, b f32) (out f32) {
+	out = f32.sqrt(f32.add(f32.mul(a, a), f32.mul(b, b)))
+}
+
+func pythag(c []f32) (out f32) {
+	out = 0.0
+	for i := 0; i < len(c); i++ {
+		out = f32.add(out, f32.mul(c[i], c[i]))
+	}
+	out = sqrt(out)
+}
