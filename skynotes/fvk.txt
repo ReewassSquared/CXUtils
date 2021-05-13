@@ -1,0 +1,69 @@
+//TENSORS
+//an object that has many properties. 
+
+package skyMLCore
+
+type Tensor struct {
+	shape []i32
+	data []f32
+}
+
+func skyMLError(in str) {
+	printf("error: %s", in)
+	//exit  program here
+}
+
+func (t Tensor) init (in []i32) {
+	if len(in) == 0 {
+		error("size is empty!")
+	}
+	dataSize := 1
+	for i := 0; i < len(in); i++ {
+		if i < 0 {
+			skyMLError("negative dimension specified")
+		}
+		dataSize = dataSize * in[i]
+	}
+	t.shape = in
+	t.data = make("[]f32", dataSize)
+}
+
+func (t Tensor) getOffset (in []i32) (out i32){
+	if(len(in) != len(t.size) {
+		printf("dimension mismatch: expected slice of size %d but got slice of size %d", len(t.size), len(in))
+		skyMLError("dimension mismatch!")
+	}
+	offset := 0
+	for i := 0; i < len(in) - 1; i++ {
+		if in[i] >= t.size[i] {
+			printf("size mismatch in axis %d", i)
+			skyMLError("size mismatch!")
+		}
+		offtmp := 1
+		for j := 0; j < len(in) - i - 2; j++ {
+			offtmp = offtmp * t.size[j]
+		}
+		offset = offset + in[i] * offtmp
+	}
+	out = offset
+}
+
+func (t Tensor) get (in []i32) (out f32) {
+	out = t.data[t.getOffset(in)]
+}
+
+func (t Tensor) set (in []i32, val f32) {
+	t.data[t.getOffset(in)] = val
+}
+
+//ex:
+//import "skyMLCore"
+//var foo Tensor
+//foo.init([]i32{100, 5})
+//foo.set([]i32{99, 2}, 0.3)
+//printf("value: %d", foo.get([]i32{99, 2}))
+//prints: value: 0.3
+
+func tmul(a Tensor, b Tensor) {
+	
+}

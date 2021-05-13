@@ -1,0 +1,21 @@
+chebyshev approx.
+convert x -> u: (2*x - a - b)/(b - a)
+x = [a, b]
+
+f(x) = sum(ck*Tk(u))
+
+ck = (1/n)*sum(A(k)*Tk(uk)*f(xk))
+
+where 
+uk = cos((2*k - 1)*pi/(2*n))
+
+u = 2x - 1
+x = u+1/2
+
+useful identities:
+atan(-x) = -atan(x)
+restricts [-inf, inf] to [0, inf]
+atan(x) = - atan(1/x) - pi/2
+restricts further to [0, 1]
+
+choose N=16
